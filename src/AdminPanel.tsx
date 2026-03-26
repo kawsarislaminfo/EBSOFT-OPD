@@ -946,7 +946,7 @@ export default function AdminPanel() {
 
   const sortedDepts = Object.entries(deptStats).sort((a, b) => (b[1] as number) - (a[1] as number));
 
-  const printSerial = (patient: any) => {
+    const printSerial = (patient: any) => {
     const doctor = doctors.find(d => d.id === patient.doctorId);
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -971,46 +971,33 @@ export default function AdminPanel() {
               flex-direction: column;
               height: 210mm;
               width: 148mm;
-              justify-content: center;
+              justify-content: flex-start;
               align-items: center;
               background: white;
             }
             .print-content {
               text-align: center;
               width: 100%;
-              padding: 20px;
+              padding-top: 80px;
             }
             .serial-box {
-              padding: 20px 40px;
+              padding: 10px 20px;
               display: inline-block;
-              margin-bottom: 20px;
-            }
-            .serial-label {
-              font-size: 12px;
-              font-weight: normal;
-              text-transform: uppercase;
-              margin-bottom: 8px;
-              color: #444;
+              margin-bottom: 10px;
             }
             .serial-number {
-              font-size: 42px;
-              font-weight: normal;
+              font-size: 32px;
+              font-weight: bold;
               margin: 0;
               color: #000;
-              line-height: 1;
+              line-height: 1.2;
             }
             .room-number {
-              font-size: 18px;
+              font-size: 16px;
               font-weight: normal;
               color: #000;
-              line-height: 1;
-              margin-bottom: 15px;
-            }
-            .print-date {
-              font-size: 10px;
-              color: #666;
-              margin-top: 30px;
-              font-weight: normal;
+              line-height: 1.2;
+              margin-top: 5px;
             }
             /* Hide everything else */
             * {
@@ -1021,11 +1008,9 @@ export default function AdminPanel() {
         <body>
           <div class="print-content">
             <div class="serial-box">
-              <div class="serial-label">সিরিয়াল নম্বর</div>
               <div class="serial-number">${patient.serialNumber}</div>
             </div>
             <div class="room-number">রুম নম্বর: ${doctor?.roomNumber || 'N/A'}</div>
-            <div class="print-date">প্রিন্ট সময়: ${new Date().toLocaleString('bn-BD')}</div>
           </div>
           <script>
             window.onload = () => {
