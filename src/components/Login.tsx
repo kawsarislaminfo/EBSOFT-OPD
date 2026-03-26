@@ -146,16 +146,15 @@ export default function Login() {
         // If it's not an email (doesn't contain @), assume it's a username
         if (!cleanLoginId.includes('@')) {
           try {
-            const { collection, query, where, getDocs, limit } = await import('firebase/firestore');
-            const q = query(collection(db, 'users'), where('username', '==', cleanLoginId), limit(1));
-            const snapshot = await getDocs(q);
+            const docRef = doc(db, 'usernames', cleanLoginId);
+            const docSnap = await getDoc(docRef);
             
-            if (snapshot.empty) {
+            if (!docSnap.exists()) {
               setError('এই ইউজারনেমটি খুঁজে পাওয়া যায়নি।');
               setLoading(false);
               return;
             } else {
-              const userData = snapshot.docs[0].data();
+              const userData = docSnap.data();
               loginEmail = userData.email;
             }
           } catch (err: any) {
@@ -192,7 +191,7 @@ export default function Login() {
         if (err.code === 'auth/network-request-failed') {
           setError('নেটওয়ার্ক সমস্যা! দয়া করে আপনার ইন্টারনেট সংযোগ চেক করুন।');
         } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-          setError('লগইন আইডি বা পাসওয়ার্ড ভুল হয়েছে। দয়া করে সঠিক তথ্য দিয়ে আবার চেষ্টা করুন। (Error: auth/invalid-credential)');
+          setError('লগইন আইডি বা পাসওয়ার্ড ভুল হয়েছে। আপনি কি ইতিমধ্যে রেজিস্ট্রেশন করেছেন? যদি না করে থাকেন, তবে আগে রেজিস্ট্রেশন করুন। (Error: auth/invalid-credential)');
         } else {
           setError('লগইন করতে সমস্যা হয়েছে: ' + (err.code || err.message));
         }

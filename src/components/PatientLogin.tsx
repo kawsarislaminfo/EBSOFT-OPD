@@ -55,7 +55,7 @@ export default function PatientLogin() {
       if (err.code === 'auth/network-request-failed') {
         setError('নেটওয়ার্ক সমস্যা! দয়া করে আপনার ইন্টারনেট সংযোগ চেক করুন অথবা Firebase কনসোলে এই ডোমেইনটি (Authorized Domain) যোগ করা আছে কিনা নিশ্চিত করুন।');
       } else if (err.code === 'auth/invalid-credential') {
-        setError('প্রদত্ত তথ্যগুলো সঠিক নয়। দয়া করে আবার চেক করুন। (Error: auth/invalid-credential)');
+        setError('প্রদত্ত হসপিটাল নম্বর বা পাসওয়ার্ড সঠিক নয়। আপনি কি ইতিমধ্যে রেজিস্ট্রেশন করেছেন? (Error: auth/invalid-credential)');
       } else if (err.code === 'auth/email-already-in-use') {
         setError('এই হসপিটাল নম্বরটি ইতিমধ্যে নিবন্ধিত।');
       } else if (err.code === 'auth/weak-password') {

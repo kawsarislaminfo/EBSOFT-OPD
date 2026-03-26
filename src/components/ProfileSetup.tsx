@@ -150,6 +150,13 @@ export default function ProfileSetup() {
       };
 
       await setDoc(doc(db, 'users', user.uid), userProfile);
+      
+      // Also create username mapping for login
+      await setDoc(doc(db, 'usernames', cleanUsername), {
+        email: user.email || '',
+        uid: user.uid
+      });
+
       showToast('প্রোফাইল সফলভাবে সেটআপ হয়েছে!', 'success');
       setTimeout(() => window.location.reload(), 1500);
     } catch (err) {

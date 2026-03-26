@@ -164,6 +164,9 @@ const DEFAULT_SETTINGS: AppSettings = {
     dentalSurgery: true,
     cardiology: true,
     gastroenterology: true,
+    entSurgery: true,
+    orthopedicSurgery: true,
+    generalSurgery: true,
   },
   opdSummarySectionTitles: {
     patientSummary: 'PATIENT SUMMARY',
@@ -174,6 +177,9 @@ const DEFAULT_SETTINGS: AppSettings = {
     dentalSurgery: 'DENTAL SURGERY',
     cardiology: 'CARDIOLOGY',
     gastroenterology: 'GASTROENTEROLOGY',
+    entSurgery: 'ENT SURGERY',
+    orthopedicSurgery: 'ORTHOPEDIC SURGERY',
+    generalSurgery: 'GENERAL SURGERY',
   },
   opdSummarySectionDepts: {
     ultrasonogram: 'ULTRASONOGRAM',
@@ -183,6 +189,9 @@ const DEFAULT_SETTINGS: AppSettings = {
     dentalSurgery: 'DENTAL SURGERY',
     cardiology: 'CARDIOLOGY',
     gastroenterology: 'GASTROENTEROLOGY',
+    entSurgery: 'ENT SURGERY',
+    orthopedicSurgery: 'ORTHOPEDIC SURGERY',
+    generalSurgery: 'GENERAL SURGERY',
   },
   opdSummarySectionOrder: [
     'patientSummary',
@@ -192,8 +201,51 @@ const DEFAULT_SETTINGS: AppSettings = {
     'emergency',
     'dentalSurgery',
     'cardiology',
-    'gastroenterology'
+    'gastroenterology',
+    'entSurgery',
+    'orthopedicSurgery',
+    'generalSurgery'
   ],
+  opdSummarySectionFields: {
+    patientSummary: [
+      { id: 'new', label: 'TOTAL NEW PATIENT', source: 'auto', key: 'new' },
+      { id: 'old', label: 'TOTAL OLD PATIENT', source: 'auto', key: 'old' },
+      { id: 'report', label: 'TOTAL REPORT SHOW', source: 'auto', key: 'report' }
+    ],
+    ultrasonogram: [
+      { id: 'total', label: 'TOTAL USG', source: 'auto', key: 'total' }
+    ],
+    gynecology: [
+      { id: 'cesarean', label: 'CESAREAN OPERATION', source: 'auto', key: 'cesarean' },
+      { id: 'normal', label: 'NORMAL DELIVERY', source: 'auto', key: 'normal' },
+      { id: 'dc', label: 'D & C', source: 'auto', key: 'dc' }
+    ],
+    radiology: [
+      { id: 'xray', label: 'X-RAY', source: 'auto', key: 'xray' },
+      { id: 'ecg', label: 'ECG', source: 'auto', key: 'ecg' }
+    ],
+    emergency: [
+      { id: 'total', label: 'TOTAL EMERGENCY', source: 'auto', key: 'total' }
+    ],
+    dentalSurgery: [
+      { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+    ],
+    cardiology: [
+      { id: 'total', label: 'TOTAL PATIENT', source: 'auto', key: 'total' }
+    ],
+    gastroenterology: [
+      { id: 'total', label: 'TOTAL PATIENT', source: 'auto', key: 'total' }
+    ],
+    entSurgery: [
+      { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+    ],
+    orthopedicSurgery: [
+      { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+    ],
+    generalSurgery: [
+      { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+    ]
+  },
   emailTemplates: {
     newRegistration: {
       subject: 'রেজিস্ট্রেশন সফল হয়েছে',
@@ -5135,6 +5187,453 @@ export default function AdminPanel() {
                                   </div>
                                 </div>
 
+                                {/* ENT Surgery Section */}
+                                <div className="p-4 bg-slate-50 border border-slate-200 space-y-4">
+                                  <div className="flex flex-wrap items-center gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer group min-w-[100px]">
+                                      <input 
+                                        type="checkbox"
+                                        checked={settings?.opdSummarySections?.entSurgery !== false}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySections: { ...prev.opdSummarySections, entSurgery: e.target.checked }
+                                        } : null)}
+                                        className="w-5 h-5 rounded-none border-slate-300 text-blue-600 focus:ring-blue-500"
+                                      />
+                                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">সক্রিয়</span>
+                                    </label>
+                                    <div className="flex-1 flex items-center gap-2 min-w-[200px]">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">Title:</span>
+                                      <input 
+                                        type="text"
+                                        value={settings?.opdSummarySectionTitles?.entSurgery || 'ENT SURGERY'}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionTitles: { ...prev.opdSummarySectionTitles, entSurgery: e.target.value }
+                                        } : null)}
+                                        className="flex-1 bg-transparent border-b border-slate-300 font-bold text-slate-700 focus:border-blue-500 outline-none text-sm"
+                                        placeholder="ENT SURGERY"
+                                      />
+                                    </div>
+                                    <div className="flex-1 flex items-center gap-2 min-w-[200px]">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">Dept:</span>
+                                      <input 
+                                        type="text"
+                                        value={settings?.opdSummarySectionDepts?.entSurgery || 'ENT SURGERY'}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionDepts: { ...prev.opdSummarySectionDepts, entSurgery: e.target.value }
+                                        } : null)}
+                                        className="flex-1 bg-transparent border-b border-slate-300 font-bold text-slate-700 focus:border-blue-500 outline-none text-sm"
+                                        placeholder="ENT SURGERY"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-3 pl-8">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">প্রসিডিওরসমূহ (Procedures / Rows)</p>
+                                    <div className="space-y-2">
+                                      {(settings?.opdSummarySectionFields?.entSurgery || [
+                                        { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                      ]).map((field, fIdx) => (
+                                        <div key={field.id} className="flex items-center gap-2">
+                                          <input 
+                                            type="text"
+                                            value={field.label}
+                                            onChange={(e) => {
+                                              const currentFields = settings?.opdSummarySectionFields?.entSurgery || [
+                                                { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                              ];
+                                              const newFields = [...currentFields];
+                                              newFields[fIdx] = { ...newFields[fIdx], label: e.target.value };
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionFields: { ...prev.opdSummarySectionFields, entSurgery: newFields }
+                                              } : null);
+                                            }}
+                                            className="flex-1 text-xs border-b border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-600 bg-transparent"
+                                          />
+                                          <button 
+                                            onClick={() => {
+                                              const currentFields = settings?.opdSummarySectionFields?.entSurgery || [
+                                                { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                              ];
+                                              const newFields = currentFields.filter((_, idx) => idx !== fIdx);
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionFields: { ...prev.opdSummarySectionFields, entSurgery: newFields }
+                                              } : null);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        const currentFields = settings?.opdSummarySectionFields?.entSurgery || [
+                                          { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                        ];
+                                        const newFields = [...currentFields, { id: `manual_${Date.now()}`, label: 'নতুন প্রসিডিওর', source: 'manual' }];
+                                        setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionFields: { ...prev.opdSummarySectionFields, entSurgery: newFields }
+                                        } : null);
+                                      }}
+                                      className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                                    >
+                                      <Plus size={10} /> প্রসিডিওর যোগ করুন
+                                    </button>
+                                  </div>
+                                  <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">ম্যানুয়াল ডাক্তার/রো সমূহ (ঐচ্ছিক)</label>
+                                    <div className="space-y-2 mb-2">
+                                      {(settings?.opdSummarySectionRows?.entSurgery || []).map((row, rIdx) => (
+                                        <div key={row.id} className="flex items-center gap-2">
+                                          <input 
+                                            type="text" 
+                                            value={row.name}
+                                            onChange={(e) => {
+                                              const newRows = [...(settings?.opdSummarySectionRows?.entSurgery || [])];
+                                              newRows[rIdx] = { ...newRows[rIdx], name: e.target.value };
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), entSurgery: newRows }
+                                              } : null);
+                                            }}
+                                            placeholder="ডাক্তারের নাম"
+                                            className="flex-1 px-2 py-1 text-xs bg-white border border-slate-300 rounded-none focus:ring-1 focus:ring-blue-500 outline-none"
+                                          />
+                                          <button 
+                                            onClick={() => {
+                                              const newRows = (settings?.opdSummarySectionRows?.entSurgery || []).filter((_, idx) => idx !== rIdx);
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), entSurgery: newRows }
+                                              } : null);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        const currentRows = settings?.opdSummarySectionRows?.entSurgery || [];
+                                        const newRows = [...currentRows, { id: `row_${Date.now()}`, name: '' }];
+                                        setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), entSurgery: newRows }
+                                        } : null);
+                                      }}
+                                      className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                                    >
+                                      <Plus size={10} /> ডাক্তার যোগ করুন
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Orthopedic Surgery Section */}
+                                <div className="p-4 bg-slate-50 border border-slate-200 space-y-4">
+                                  <div className="flex flex-wrap items-center gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer group min-w-[100px]">
+                                      <input 
+                                        type="checkbox"
+                                        checked={settings?.opdSummarySections?.orthopedicSurgery !== false}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySections: { ...prev.opdSummarySections, orthopedicSurgery: e.target.checked }
+                                        } : null)}
+                                        className="w-5 h-5 rounded-none border-slate-300 text-blue-600 focus:ring-blue-500"
+                                      />
+                                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">সক্রিয়</span>
+                                    </label>
+                                    <div className="flex-1 flex items-center gap-2 min-w-[200px]">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">Title:</span>
+                                      <input 
+                                        type="text"
+                                        value={settings?.opdSummarySectionTitles?.orthopedicSurgery || 'ORTHOPEDIC SURGERY'}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionTitles: { ...prev.opdSummarySectionTitles, orthopedicSurgery: e.target.value }
+                                        } : null)}
+                                        className="flex-1 bg-transparent border-b border-slate-300 font-bold text-slate-700 focus:border-blue-500 outline-none text-sm"
+                                        placeholder="ORTHOPEDIC SURGERY"
+                                      />
+                                    </div>
+                                    <div className="flex-1 flex items-center gap-2 min-w-[200px]">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">Dept:</span>
+                                      <input 
+                                        type="text"
+                                        value={settings?.opdSummarySectionDepts?.orthopedicSurgery || 'ORTHOPEDIC SURGERY'}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionDepts: { ...prev.opdSummarySectionDepts, orthopedicSurgery: e.target.value }
+                                        } : null)}
+                                        className="flex-1 bg-transparent border-b border-slate-300 font-bold text-slate-700 focus:border-blue-500 outline-none text-sm"
+                                        placeholder="ORTHOPEDIC SURGERY"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-3 pl-8">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">প্রসিডিওরসমূহ (Procedures / Rows)</p>
+                                    <div className="space-y-2">
+                                      {(settings?.opdSummarySectionFields?.orthopedicSurgery || [
+                                        { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                      ]).map((field, fIdx) => (
+                                        <div key={field.id} className="flex items-center gap-2">
+                                          <input 
+                                            type="text"
+                                            value={field.label}
+                                            onChange={(e) => {
+                                              const currentFields = settings?.opdSummarySectionFields?.orthopedicSurgery || [
+                                                { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                              ];
+                                              const newFields = [...currentFields];
+                                              newFields[fIdx] = { ...newFields[fIdx], label: e.target.value };
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionFields: { ...prev.opdSummarySectionFields, orthopedicSurgery: newFields }
+                                              } : null);
+                                            }}
+                                            className="flex-1 text-xs border-b border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-600 bg-transparent"
+                                          />
+                                          <button 
+                                            onClick={() => {
+                                              const currentFields = settings?.opdSummarySectionFields?.orthopedicSurgery || [
+                                                { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                              ];
+                                              const newFields = currentFields.filter((_, idx) => idx !== fIdx);
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionFields: { ...prev.opdSummarySectionFields, orthopedicSurgery: newFields }
+                                              } : null);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        const currentFields = settings?.opdSummarySectionFields?.orthopedicSurgery || [
+                                          { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                        ];
+                                        const newFields = [...currentFields, { id: `manual_${Date.now()}`, label: 'নতুন প্রসিডিওর', source: 'manual' }];
+                                        setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionFields: { ...prev.opdSummarySectionFields, orthopedicSurgery: newFields }
+                                        } : null);
+                                      }}
+                                      className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                                    >
+                                      <Plus size={10} /> প্রসিডিওর যোগ করুন
+                                    </button>
+                                  </div>
+                                  <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">ম্যানুয়াল ডাক্তার/রো সমূহ (ঐচ্ছিক)</label>
+                                    <div className="space-y-2 mb-2">
+                                      {(settings?.opdSummarySectionRows?.orthopedicSurgery || []).map((row, rIdx) => (
+                                        <div key={row.id} className="flex items-center gap-2">
+                                          <input 
+                                            type="text" 
+                                            value={row.name}
+                                            onChange={(e) => {
+                                              const newRows = [...(settings?.opdSummarySectionRows?.orthopedicSurgery || [])];
+                                              newRows[rIdx] = { ...newRows[rIdx], name: e.target.value };
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), orthopedicSurgery: newRows }
+                                              } : null);
+                                            }}
+                                            placeholder="ডাক্তারের নাম"
+                                            className="flex-1 px-2 py-1 text-xs bg-white border border-slate-300 rounded-none focus:ring-1 focus:ring-blue-500 outline-none"
+                                          />
+                                          <button 
+                                            onClick={() => {
+                                              const newRows = (settings?.opdSummarySectionRows?.orthopedicSurgery || []).filter((_, idx) => idx !== rIdx);
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), orthopedicSurgery: newRows }
+                                              } : null);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        const currentRows = settings?.opdSummarySectionRows?.orthopedicSurgery || [];
+                                        const newRows = [...currentRows, { id: `row_${Date.now()}`, name: '' }];
+                                        setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), orthopedicSurgery: newRows }
+                                        } : null);
+                                      }}
+                                      className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                                    >
+                                      <Plus size={10} /> ডাক্তার যোগ করুন
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* General Surgery Section */}
+                                <div className="p-4 bg-slate-50 border border-slate-200 space-y-4">
+                                  <div className="flex flex-wrap items-center gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer group min-w-[100px]">
+                                      <input 
+                                        type="checkbox"
+                                        checked={settings?.opdSummarySections?.generalSurgery !== false}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySections: { ...prev.opdSummarySections, generalSurgery: e.target.checked }
+                                        } : null)}
+                                        className="w-5 h-5 rounded-none border-slate-300 text-blue-600 focus:ring-blue-500"
+                                      />
+                                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">সক্রিয়</span>
+                                    </label>
+                                    <div className="flex-1 flex items-center gap-2 min-w-[200px]">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">Title:</span>
+                                      <input 
+                                        type="text"
+                                        value={settings?.opdSummarySectionTitles?.generalSurgery || 'GENERAL SURGERY'}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionTitles: { ...prev.opdSummarySectionTitles, generalSurgery: e.target.value }
+                                        } : null)}
+                                        className="flex-1 bg-transparent border-b border-slate-300 font-bold text-slate-700 focus:border-blue-500 outline-none text-sm"
+                                        placeholder="GENERAL SURGERY"
+                                      />
+                                    </div>
+                                    <div className="flex-1 flex items-center gap-2 min-w-[200px]">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase whitespace-nowrap">Dept:</span>
+                                      <input 
+                                        type="text"
+                                        value={settings?.opdSummarySectionDepts?.generalSurgery || 'GENERAL SURGERY'}
+                                        onChange={(e) => setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionDepts: { ...prev.opdSummarySectionDepts, generalSurgery: e.target.value }
+                                        } : null)}
+                                        className="flex-1 bg-transparent border-b border-slate-300 font-bold text-slate-700 focus:border-blue-500 outline-none text-sm"
+                                        placeholder="GENERAL SURGERY"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-3 pl-8">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">প্রসিডিওরসমূহ (Procedures / Rows)</p>
+                                    <div className="space-y-2">
+                                      {(settings?.opdSummarySectionFields?.generalSurgery || [
+                                        { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                      ]).map((field, fIdx) => (
+                                        <div key={field.id} className="flex items-center gap-2">
+                                          <input 
+                                            type="text"
+                                            value={field.label}
+                                            onChange={(e) => {
+                                              const currentFields = settings?.opdSummarySectionFields?.generalSurgery || [
+                                                { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                              ];
+                                              const newFields = [...currentFields];
+                                              newFields[fIdx] = { ...newFields[fIdx], label: e.target.value };
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionFields: { ...prev.opdSummarySectionFields, generalSurgery: newFields }
+                                              } : null);
+                                            }}
+                                            className="flex-1 text-xs border-b border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-600 bg-transparent"
+                                          />
+                                          <button 
+                                            onClick={() => {
+                                              const currentFields = settings?.opdSummarySectionFields?.generalSurgery || [
+                                                { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                              ];
+                                              const newFields = currentFields.filter((_, idx) => idx !== fIdx);
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionFields: { ...prev.opdSummarySectionFields, generalSurgery: newFields }
+                                              } : null);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        const currentFields = settings?.opdSummarySectionFields?.generalSurgery || [
+                                          { id: 'total', label: 'TOTAL OPERATION', source: 'auto', key: 'total' }
+                                        ];
+                                        const newFields = [...currentFields, { id: `manual_${Date.now()}`, label: 'নতুন প্রসিডিওর', source: 'manual' }];
+                                        setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionFields: { ...prev.opdSummarySectionFields, generalSurgery: newFields }
+                                        } : null);
+                                      }}
+                                      className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                                    >
+                                      <Plus size={10} /> প্রসিডিওর যোগ করুন
+                                    </button>
+                                  </div>
+                                  <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">ম্যানুয়াল ডাক্তার/রো সমূহ (ঐচ্ছিক)</label>
+                                    <div className="space-y-2 mb-2">
+                                      {(settings?.opdSummarySectionRows?.generalSurgery || []).map((row, rIdx) => (
+                                        <div key={row.id} className="flex items-center gap-2">
+                                          <input 
+                                            type="text" 
+                                            value={row.name}
+                                            onChange={(e) => {
+                                              const newRows = [...(settings?.opdSummarySectionRows?.generalSurgery || [])];
+                                              newRows[rIdx] = { ...newRows[rIdx], name: e.target.value };
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), generalSurgery: newRows }
+                                              } : null);
+                                            }}
+                                            placeholder="ডাক্তারের নাম"
+                                            className="flex-1 px-2 py-1 text-xs bg-white border border-slate-300 rounded-none focus:ring-1 focus:ring-blue-500 outline-none"
+                                          />
+                                          <button 
+                                            onClick={() => {
+                                              const newRows = (settings?.opdSummarySectionRows?.generalSurgery || []).filter((_, idx) => idx !== rIdx);
+                                              setSettings(prev => prev ? {
+                                                ...prev,
+                                                opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), generalSurgery: newRows }
+                                              } : null);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        const currentRows = settings?.opdSummarySectionRows?.generalSurgery || [];
+                                        const newRows = [...currentRows, { id: `row_${Date.now()}`, name: '' }];
+                                        setSettings(prev => prev ? {
+                                          ...prev,
+                                          opdSummarySectionRows: { ...(prev.opdSummarySectionRows || {}), generalSurgery: newRows }
+                                        } : null);
+                                      }}
+                                      className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                                    >
+                                      <Plus size={10} /> ডাক্তার যোগ করুন
+                                    </button>
+                                  </div>
+                                </div>
+
 
 
                                 {/* Custom Sections */}
@@ -5323,7 +5822,7 @@ export default function AdminPanel() {
                                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">সেকশন ক্রম (Section Order)</label>
                                   <div className="space-y-2">
                                     {(() => {
-                                      const defaultSections = ['patientSummary', 'ultrasonogram', 'gynecology', 'radiology', 'emergency', 'dentalSurgery', 'cardiology', 'gastroenterology'];
+                                      const defaultSections = ['patientSummary', 'ultrasonogram', 'gynecology', 'radiology', 'emergency', 'dentalSurgery', 'cardiology', 'gastroenterology', 'entSurgery', 'orthopedicSurgery', 'generalSurgery'];
                                       const customSections = settings?.opdSummaryCustomSections?.map(s => s.id) || [];
                                       let order = settings?.opdSummarySectionOrder || [...defaultSections, ...customSections];
                                       
@@ -5348,6 +5847,9 @@ export default function AdminPanel() {
                                           sectionId === 'radiology' ? (settings?.opdSummarySectionTitles?.radiology || 'RADIOLOGY') :
                                           sectionId === 'emergency' ? (settings?.opdSummarySectionTitles?.emergency || 'EMERGENCY') :
                                           sectionId === 'dentalSurgery' ? (settings?.opdSummarySectionTitles?.dentalSurgery || 'DENTAL SURGERY') :
+                                          sectionId === 'entSurgery' ? (settings?.opdSummarySectionTitles?.entSurgery || 'ENT SURGERY') :
+                                          sectionId === 'orthopedicSurgery' ? (settings?.opdSummarySectionTitles?.orthopedicSurgery || 'ORTHOPEDIC SURGERY') :
+                                          sectionId === 'generalSurgery' ? (settings?.opdSummarySectionTitles?.generalSurgery || 'GENERAL SURGERY') :
                                           sectionId === 'cardiology' ? (settings?.opdSummarySectionTitles?.cardiology || 'CARDIOLOGY') :
                                           sectionId === 'gastroenterology' ? (settings?.opdSummarySectionTitles?.gastroenterology || 'GASTROENTEROLOGY') : sectionId
                                         );

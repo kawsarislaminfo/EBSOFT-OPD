@@ -425,6 +425,13 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
           };
 
           await setDoc(doc(db, 'users', uid), userProfile);
+          
+          // Also create username mapping for login
+          await setDoc(doc(db, 'usernames', cleanUsername), {
+            email: cleanEmail,
+            uid: uid
+          });
+
           await logActivity('user', 'নতুন ইউজার তৈরি', `${newName} (${newRole === 'admin' ? 'অ্যাডমিন' : 'স্টাফ'}) অ্যাকাউন্ট তৈরি করা হয়েছে।`);
           
           setShowAddModal(false);
@@ -647,6 +654,19 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
           };
 
           await updateDoc(doc(db, 'users', editingUser.uid), updates);
+          
+          // Update username mapping if changed
+          if (editingUser.username !== updates.username) {
+            // Delete old mapping
+            await deleteDoc(doc(db, 'usernames', editingUser.username.toLowerCase().trim()));
+          }
+          
+          // Set new mapping
+          await setDoc(doc(db, 'usernames', updates.username), {
+            email: updates.email,
+            uid: editingUser.uid
+          });
+
           await logActivity('user', 'ইউজার তথ্য আপডেট', `${editingUser.name} এর তথ্য সংশোধন করা হয়েছে।`);
           
           showToast('ইউজার তথ্য সফলভাবে আপডেট করা হয়েছে।', 'success');
@@ -733,6 +753,12 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
       onConfirm: async () => {
         try {
           await deleteDoc(doc(db, 'users', uid));
+          
+          // Also delete username mapping
+          if (user?.username) {
+            await deleteDoc(doc(db, 'usernames', user.username.toLowerCase().trim()));
+          }
+
           if (user) {
             await logActivity('user', 'ইউজার মুছে ফেলা', `${user.name} এর প্রোফাইল মুছে ফেলা হয়েছে।`);
           }
@@ -740,6 +766,35 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
         } catch (err) {
           console.error(err);
           showToast('ইউজার মুছে ফেলা সম্ভব হয়নি।', 'error');
+        }
+      }
+    });
+  };
+
+  const syncUsernames = async () => {
+    setConfirmDialog({
+      isOpen: true,
+      message: 'আপনি কি সকল ইউজারের ইউজারনেম লগইন সিস্টেমের সাথে সিঙ্ক করতে চান? এটি বিদ্যমান সকল ইউজারনেম লগইন সচল করবে।',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          let count = 0;
+          for (const user of users) {
+            if (user.username) {
+              await setDoc(doc(db, 'usernames', user.username.toLowerCase().trim()), {
+                email: user.email,
+                uid: user.uid
+              });
+              count++;
+            }
+          }
+          showToast(`${count} টি ইউজারনেম সফলভাবে সিঙ্ক করা হয়েছে।`, 'success');
+          await logActivity('user', 'ইউজারনেম সিঙ্ক', 'সকল ইউজারের ইউজারনেম লগইন সিস্টেমের সাথে সিঙ্ক করা হয়েছে।');
+        } catch (err) {
+          console.error(err);
+          showToast('ইউজারনেম সিঙ্ক করতে সমস্যা হয়েছে।', 'error');
+        } finally {
+          setLoading(false);
         }
       }
     });
@@ -791,16 +846,28 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
             {isPatientOnly ? 'পেশেন্ট অ্যাকাউন্ট এবং এক্সেস কন্ট্রোল' : 'স্টাফ অ্যাকাউন্ট এবং পারমিশন কন্ট্রোল'}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setNewRole(roleFilter?.[0] || 'staff');
-            setShowAddModal(true);
-          }}
-          className="flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-95 w-full md:w-auto justify-center"
-        >
-          <UserPlus size={16} className="md:w-[18px] md:h-[18px]" />
-          নতুন {isPatientOnly ? 'পেশেন্ট' : 'ইউজার'} যোগ করুন
-        </button>
+        <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+          {isSuperAdmin && (
+            <button
+              onClick={syncUsernames}
+              className="flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl hover:bg-slate-900 transition-all active:scale-95 w-full md:w-auto justify-center"
+              title="ইউজারনেম লগইন সিঙ্ক করুন"
+            >
+              <Activity size={16} className="md:w-[18px] md:h-[18px]" />
+              সিঙ্ক ইউজারনেম
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setNewRole(roleFilter?.[0] || 'staff');
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] md:text-xs shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-95 w-full md:w-auto justify-center"
+          >
+            <UserPlus size={16} className="md:w-[18px] md:h-[18px]" />
+            নতুন {isPatientOnly ? 'পেশেন্ট' : 'ইউজার'} যোগ করুন
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border-2 border-slate-200 shadow-xl overflow-hidden">
