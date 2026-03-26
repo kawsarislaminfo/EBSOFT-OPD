@@ -22,7 +22,8 @@ export const isConfigured = !!firebaseConfig.apiKey &&
                            firebaseConfig.apiKey !== "" &&
                            !firebaseConfig.apiKey.includes("YOUR_") &&
                            !firebaseConfig.apiKey.includes("remixed-") &&
-                           !firebaseConfig.apiKey.includes("TODO_");
+                           !firebaseConfig.apiKey.includes("TODO_") &&
+                           firebaseConfig.projectId !== "ebsoft-ff4fa"; // Original project ID that is likely invalid for remixed apps
 
 export const getMissingVars = () => {
   const missing = [];

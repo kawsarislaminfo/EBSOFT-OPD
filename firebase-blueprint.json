@@ -122,6 +122,9 @@
         "gynecology": { "type": "object" },
         "radiology": { "type": "object" },
         "emergency": { "type": "object" },
+        "entSurgery": { "type": "object" },
+        "orthopedicSurgery": { "type": "object" },
+        "generalSurgery": { "type": "object" },
         "updatedAt": { "type": "string", "format": "date-time" },
         "updatedBy": { "type": "string" }
       },

@@ -41,6 +41,9 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
           dentalSurgery: {},
           cardiology: {},
           gastroenterology: {},
+          entSurgery: {},
+          orthopedicSurgery: {},
+          generalSurgery: {},
           customStats: {}
         };
         setDailyStats(defaultStats);
@@ -469,6 +472,15 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
         doctors: finalGastroDoctors.map(d => ({ id: d.id, name: d.name, department: d.department })),
         autoStats: autoGastroStats,
         stats: localStats?.gastroenterology || {}
+      },
+      entSurgery: {
+        total: localStats?.entSurgery?.total ?? todayPatients.filter(p => p.service.toLowerCase().includes('ent')).length
+      },
+      orthopedicSurgery: {
+        total: localStats?.orthopedicSurgery?.total ?? todayPatients.filter(p => p.service.toLowerCase().includes('ortho')).length
+      },
+      generalSurgery: {
+        total: localStats?.generalSurgery?.total ?? todayPatients.filter(p => p.service.toLowerCase().includes('surgery') && !p.service.toLowerCase().includes('dental') && !p.service.toLowerCase().includes('ent') && !p.service.toLowerCase().includes('ortho')).length
       }
     };
   }, [doctors, patients, today, settings, localStats]);
@@ -582,7 +594,7 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
 
         {/* Dynamic Sections based on Order */}
         {(() => {
-          let order = settings?.opdSummarySectionOrder || ['patientSummary', 'ultrasonogram', 'gynecology', 'radiology', 'emergency', 'dentalSurgery', 'cardiology', 'gastroenterology', ...(settings?.opdSummaryCustomSections?.map(s => s.id) || [])];
+          let order = settings?.opdSummarySectionOrder || ['patientSummary', 'ultrasonogram', 'gynecology', 'radiology', 'emergency', 'entSurgery', 'orthopedicSurgery', 'generalSurgery', 'dentalSurgery', 'cardiology', 'gastroenterology', ...(settings?.opdSummaryCustomSections?.map(s => s.id) || [])];
           if (settings?.opdSummarySectionOrder && !order.includes('dentalSurgery')) {
             order = [...order, 'dentalSurgery'];
           }
@@ -591,6 +603,15 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
           }
           if (settings?.opdSummarySectionOrder && !order.includes('gastroenterology')) {
             order = [...order, 'gastroenterology'];
+          }
+          if (settings?.opdSummarySectionOrder && !order.includes('entSurgery')) {
+            order = [...order, 'entSurgery'];
+          }
+          if (settings?.opdSummarySectionOrder && !order.includes('orthopedicSurgery')) {
+            order = [...order, 'orthopedicSurgery'];
+          }
+          if (settings?.opdSummarySectionOrder && !order.includes('generalSurgery')) {
+            order = [...order, 'generalSurgery'];
           }
           return order.map((sectionId) => {
           // Patient Summary
@@ -944,6 +965,186 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                                     type="number" 
                                     value={displayValue} 
                                     onChange={(e) => updateSectionStat('emergency', statKey, e.target.value)} 
+                                    className="w-10 text-center border rounded text-[10px]" 
+                                  />
+                                ) : (
+                                  <span className="font-bold">{displayValue}</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+
+          // ENT Surgery
+          if (sectionId === 'entSurgery' && settings?.opdSummarySections?.entSurgery !== false) {
+            const fields = settings?.opdSummarySectionFields?.entSurgery || [
+              { id: 'total', label: settings?.opdSummarySectionFieldLabels?.entSurgery?.total || 'TOTAL OPERATION', source: 'auto', key: 'total' }
+            ];
+            return (
+              <div key="entSurgery" className="mb-1">
+                <div className="border border-black px-1.5 py-0.5 font-bold text-[10px] inline-block mb-0.5 uppercase">
+                  {settings?.opdSummarySectionTitles?.entSurgery || 'ENT SURGERY'}
+                </div>
+                <table className="w-full border-collapse text-[10px]">
+                  <thead>
+                    <tr>
+                      <th className="border border-dotted border-black px-1 py-0 w-16">DATE</th>
+                      <th className="border border-dotted border-black px-1 py-0 w-16">SL</th>
+                      <th className="border border-dotted border-black px-1 py-0 text-left">NAME OF CONSULTANT</th>
+                      <th className="border border-dotted border-black px-1 py-0">DEPARTMENT</th>
+                      {fields.map(field => (
+                        <th key={field.id} className="border border-dotted border-black px-1 py-0 uppercase">{field.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const manualRows = settings?.opdSummarySectionRows?.entSurgery || [];
+                      const rowsToRender = manualRows.length > 0 ? manualRows : [{ id: 'default', name: '' }];
+                      return rowsToRender.map((row, index) => (
+                        <tr key={row.id}>
+                          {index === 0 && <td className="border border-dotted border-black px-1 py-0 text-center align-middle" rowSpan={rowsToRender.length}>{formattedDate}</td>}
+                          <td className="border border-dotted border-black px-1 py-0 text-center">{index + 1}</td>
+                          <td className="border border-dotted border-black px-1 py-0">{row.name}</td>
+                          <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{settings?.opdSummarySectionDepts?.entSurgery || 'ENT SURGERY'}</td>
+                          {fields.map(field => {
+                            const statKey = manualRows.length > 0 ? `${row.id}_${field.id}` : field.id;
+                            const autoValue = summaryData.entSurgery?.total || 0;
+                            const displayValue = localStats?.entSurgery?.[statKey] ?? autoValue;
+                            return (
+                              <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
+                                {isEditMode ? (
+                                  <input 
+                                    type="number" 
+                                    value={displayValue} 
+                                    onChange={(e) => updateSectionStat('entSurgery', statKey, e.target.value)} 
+                                    className="w-10 text-center border rounded text-[10px]" 
+                                  />
+                                ) : (
+                                  <span className="font-bold">{displayValue}</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+
+          // Orthopedic Surgery
+          if (sectionId === 'orthopedicSurgery' && settings?.opdSummarySections?.orthopedicSurgery !== false) {
+            const fields = settings?.opdSummarySectionFields?.orthopedicSurgery || [
+              { id: 'total', label: settings?.opdSummarySectionFieldLabels?.orthopedicSurgery?.total || 'TOTAL OPERATION', source: 'auto', key: 'total' }
+            ];
+            return (
+              <div key="orthopedicSurgery" className="mb-1">
+                <div className="border border-black px-1.5 py-0.5 font-bold text-[10px] inline-block mb-0.5 uppercase">
+                  {settings?.opdSummarySectionTitles?.orthopedicSurgery || 'ORTHOPEDIC SURGERY'}
+                </div>
+                <table className="w-full border-collapse text-[10px]">
+                  <thead>
+                    <tr>
+                      <th className="border border-dotted border-black px-1 py-0 w-16">DATE</th>
+                      <th className="border border-dotted border-black px-1 py-0 w-16">SL</th>
+                      <th className="border border-dotted border-black px-1 py-0 text-left">NAME OF CONSULTANT</th>
+                      <th className="border border-dotted border-black px-1 py-0">DEPARTMENT</th>
+                      {fields.map(field => (
+                        <th key={field.id} className="border border-dotted border-black px-1 py-0 uppercase">{field.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const manualRows = settings?.opdSummarySectionRows?.orthopedicSurgery || [];
+                      const rowsToRender = manualRows.length > 0 ? manualRows : [{ id: 'default', name: '' }];
+                      return rowsToRender.map((row, index) => (
+                        <tr key={row.id}>
+                          {index === 0 && <td className="border border-dotted border-black px-1 py-0 text-center align-middle" rowSpan={rowsToRender.length}>{formattedDate}</td>}
+                          <td className="border border-dotted border-black px-1 py-0 text-center">{index + 1}</td>
+                          <td className="border border-dotted border-black px-1 py-0">{row.name}</td>
+                          <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{settings?.opdSummarySectionDepts?.orthopedicSurgery || 'ORTHOPEDIC SURGERY'}</td>
+                          {fields.map(field => {
+                            const statKey = manualRows.length > 0 ? `${row.id}_${field.id}` : field.id;
+                            const autoValue = summaryData.orthopedicSurgery?.total || 0;
+                            const displayValue = localStats?.orthopedicSurgery?.[statKey] ?? autoValue;
+                            return (
+                              <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
+                                {isEditMode ? (
+                                  <input 
+                                    type="number" 
+                                    value={displayValue} 
+                                    onChange={(e) => updateSectionStat('orthopedicSurgery', statKey, e.target.value)} 
+                                    className="w-10 text-center border rounded text-[10px]" 
+                                  />
+                                ) : (
+                                  <span className="font-bold">{displayValue}</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+
+          // General Surgery
+          if (sectionId === 'generalSurgery' && settings?.opdSummarySections?.generalSurgery !== false) {
+            const fields = settings?.opdSummarySectionFields?.generalSurgery || [
+              { id: 'total', label: settings?.opdSummarySectionFieldLabels?.generalSurgery?.total || 'TOTAL OPERATION', source: 'auto', key: 'total' }
+            ];
+            return (
+              <div key="generalSurgery" className="mb-1">
+                <div className="border border-black px-1.5 py-0.5 font-bold text-[10px] inline-block mb-0.5 uppercase">
+                  {settings?.opdSummarySectionTitles?.generalSurgery || 'GENERAL SURGERY'}
+                </div>
+                <table className="w-full border-collapse text-[10px]">
+                  <thead>
+                    <tr>
+                      <th className="border border-dotted border-black px-1 py-0 w-16">DATE</th>
+                      <th className="border border-dotted border-black px-1 py-0 w-16">SL</th>
+                      <th className="border border-dotted border-black px-1 py-0 text-left">NAME OF CONSULTANT</th>
+                      <th className="border border-dotted border-black px-1 py-0">DEPARTMENT</th>
+                      {fields.map(field => (
+                        <th key={field.id} className="border border-dotted border-black px-1 py-0 uppercase">{field.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const manualRows = settings?.opdSummarySectionRows?.generalSurgery || [];
+                      const rowsToRender = manualRows.length > 0 ? manualRows : [{ id: 'default', name: '' }];
+                      return rowsToRender.map((row, index) => (
+                        <tr key={row.id}>
+                          {index === 0 && <td className="border border-dotted border-black px-1 py-0 text-center align-middle" rowSpan={rowsToRender.length}>{formattedDate}</td>}
+                          <td className="border border-dotted border-black px-1 py-0 text-center">{index + 1}</td>
+                          <td className="border border-dotted border-black px-1 py-0">{row.name}</td>
+                          <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{settings?.opdSummarySectionDepts?.generalSurgery || 'GENERAL SURGERY'}</td>
+                          {fields.map(field => {
+                            const statKey = manualRows.length > 0 ? `${row.id}_${field.id}` : field.id;
+                            const autoValue = summaryData.generalSurgery?.total || 0;
+                            const displayValue = localStats?.generalSurgery?.[statKey] ?? autoValue;
+                            return (
+                              <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
+                                {isEditMode ? (
+                                  <input 
+                                    type="number" 
+                                    value={displayValue} 
+                                    onChange={(e) => updateSectionStat('generalSurgery', statKey, e.target.value)} 
                                     className="w-10 text-center border rounded text-[10px]" 
                                   />
                                 ) : (

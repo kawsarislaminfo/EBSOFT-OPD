@@ -245,6 +245,9 @@ export interface AppSettings {
     dentalSurgery: boolean;
     cardiology: boolean;
     gastroenterology: boolean;
+    entSurgery?: boolean;
+    orthopedicSurgery?: boolean;
+    generalSurgery?: boolean;
     signature?: boolean;
   };
   opdSummarySectionTitles?: {
@@ -256,6 +259,9 @@ export interface AppSettings {
     dentalSurgery?: string;
     cardiology?: string;
     gastroenterology?: string;
+    entSurgery?: string;
+    orthopedicSurgery?: string;
+    generalSurgery?: string;
   };
   opdSummarySectionFieldLabels?: {
     patientSummary?: { new?: string; followup?: string };
@@ -263,6 +269,9 @@ export interface AppSettings {
     gynecology?: { cesarean?: string; normal?: string; dc?: string };
     radiology?: { ct?: string; xray?: string };
     emergency?: { total?: string };
+    entSurgery?: { total?: string };
+    orthopedicSurgery?: { total?: string };
+    generalSurgery?: { total?: string };
   };
   opdSummarySectionDepts?: {
     ultrasonogram?: string;
@@ -272,6 +281,9 @@ export interface AppSettings {
     dentalSurgery?: string;
     cardiology?: string;
     gastroenterology?: string;
+    entSurgery?: string;
+    orthopedicSurgery?: string;
+    generalSurgery?: string;
   };
   opdSummarySectionFields?: {
     [sectionId: string]: { id: string; label: string; source: 'auto' | 'manual'; key?: string }[];
@@ -347,6 +359,9 @@ export interface DailyOpdStats {
   dentalSurgery?: { [fieldId: string]: number };
   cardiology?: { [fieldId: string]: number };
   gastroenterology?: { [fieldId: string]: number };
+  entSurgery?: { [fieldId: string]: number };
+  orthopedicSurgery?: { [fieldId: string]: number };
+  generalSurgery?: { [fieldId: string]: number };
   customStats?: {
     [sectionId: string]: {
       [fieldId: string]: number;

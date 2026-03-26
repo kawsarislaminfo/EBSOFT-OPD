@@ -1,10 +1,10 @@
 {
-  "projectId": "ebsoft-ff4fa",
-  "appId": "1:843025314594:web:a228c98faa0e732105ab7b",
-  "apiKey": "AIzaSyDM_jCIvf-1iWkVIjYUkyiHffMbJFeF6n0",
-  "authDomain": "ebsoft-ff4fa.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-8058405a-c0a3-447b-b888-6b89e52110fc",
-  "storageBucket": "ebsoft-ff4fa.firebasestorage.app",
-  "messagingSenderId": "843025314594",
-  "measurementId": "G-RMX75TWS21"
+  "projectId": "remixed-TODO",
+  "appId": "remixed-TODO",
+  "apiKey": "remixed-TODO",
+  "authDomain": "remixed-TODO",
+  "firestoreDatabaseId": "remixed-TODO",
+  "storageBucket": "remixed-TODO",
+  "messagingSenderId": "remixed-TODO",
+  "measurementId": "remixed-TODO"
 }
