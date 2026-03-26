@@ -255,6 +255,7 @@ export default function PatientManagement({ logActivity, showToast }: {
           const defaultPermissions: UserPermissions = {
             canViewOverview: true,
             canViewDashboard: true,
+            canViewOpdDashboard: true,
             canViewRegistration: true,
             canCreateSerial: true,
             canEditSerial: true,

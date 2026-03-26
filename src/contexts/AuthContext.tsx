@@ -70,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               permissions: {
                 canViewOverview: true,
                 canViewDashboard: true,
+                canViewOpdDashboard: true,
                 canViewRegistration: true,
                 canCreateSerial: true,
                 canEditSerial: true,

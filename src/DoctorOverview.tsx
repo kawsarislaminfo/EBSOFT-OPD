@@ -232,12 +232,23 @@ export default function DoctorOverview({ selectedDate, onQuickView }: { selected
     }, [doctors, patients, targetDay]);
 
     const opdDoctors = React.useMemo(() => 
-        doctorStats.sort((a, b) => b.opdTotal - a.opdTotal), 
+        doctorStats
+            .filter(doc => {
+                const excludedDepts = ["ULTRASONOGRAM", "ULTRA", "ULTRASONOGRAPHY", "SONOGRAPHY", "আল্ট্রাসনোগ্রাম", "আল্ট্রাসোনোগ্রাফি", "আল্ট্রা", "সোনোগ্রাফি", "USG", "EMERGENCY", "ইমার্জেন্সী", "জরুরি বিভাগ", "জরুরি"];
+                const deptUpper = doc.department.toUpperCase();
+                return !excludedDepts.some(eDept => deptUpper.includes(eDept.toUpperCase()));
+            })
+            .sort((a, b) => b.opdTotal - a.opdTotal), 
     [doctorStats]);
     
     const procedureDoctors = React.useMemo(() => 
-        doctorStats.filter(doc => doc.procedureTotal > 0)
-            .sort((a, b) => b.procedureTotal - a.procedureTotal), 
+        doctorStats.filter(doc => {
+            const procedureDepts = ["ULTRASONOGRAM", "ULTRA", "ULTRASONOGRAPHY", "SONOGRAPHY", "আল্ট্রাসনোগ্রাম", "আল্ট্রাসোনোগ্রাফি", "আল্ট্রা", "সোনোগ্রাফি", "USG", "EMERGENCY", "ইমার্জেন্সী", "জরুরি বিভাগ", "জরুরি"];
+            const deptUpper = doc.department.toUpperCase();
+            const isProcedureDept = procedureDepts.some(eDept => deptUpper.includes(eDept.toUpperCase()));
+            return doc.procedureTotal > 0 || isProcedureDept;
+        })
+        .sort((a, b) => b.procedureTotal - a.procedureTotal), 
     [doctorStats]);
 
     const opdPatients = React.useMemo(() => patients.filter(p => p.service === 'general' || !p.service), [patients]);

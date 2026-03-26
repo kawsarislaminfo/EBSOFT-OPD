@@ -77,6 +77,7 @@ export default function ProfileSetup() {
         permissions: (userRole === 'super-admin' || userRole === 'admin') ? {
           canViewOverview: true,
           canViewDashboard: true,
+          canViewOpdDashboard: true,
           canViewRegistration: true,
           canCreateSerial: true,
           canEditSerial: true,
@@ -111,6 +112,7 @@ export default function ProfileSetup() {
         } : {
           canViewOverview: true,
           canViewDashboard: true,
+          canViewOpdDashboard: true,
           canViewRegistration: true,
           canCreateSerial: true,
           canEditSerial: true,

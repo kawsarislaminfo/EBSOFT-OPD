@@ -2,6 +2,7 @@ export interface UserPermissions {
   // Dashboard & Overview
   canViewOverview: boolean;
   canViewDashboard: boolean;
+  canViewOpdDashboard: boolean;
   
   // Registration & Serial
   canViewRegistration: boolean;
@@ -244,6 +245,7 @@ export interface AppSettings {
     dentalSurgery: boolean;
     cardiology: boolean;
     gastroenterology: boolean;
+    signature?: boolean;
   };
   opdSummarySectionTitles?: {
     patientSummary?: string;

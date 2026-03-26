@@ -490,6 +490,7 @@ export default function AdminPanel() {
 
   const canViewOverview = isAdmin || userProfile?.permissions?.canViewOverview;
   const canViewDashboard = isAdmin || userProfile?.permissions?.canViewDashboard;
+  const canViewOpdDashboard = isAdmin || userProfile?.permissions?.canViewOpdDashboard;
   const canViewRegistration = isAdmin || userProfile?.permissions?.canViewRegistration;
   const canCreateSerial = isAdmin || userProfile?.permissions?.canCreateSerial;
   const canEditSerial = isAdmin || userProfile?.permissions?.canEditSerial;
@@ -985,15 +986,21 @@ export default function AdminPanel() {
               display: inline-block;
               margin-bottom: 10px;
             }
+            .serial-label {
+              font-size: 14px;
+              font-weight: normal;
+              color: #000;
+              margin-bottom: 2px;
+            }
             .serial-number {
-              font-size: 32px;
-              font-weight: bold;
+              font-size: 24px;
+              font-weight: normal;
               margin: 0;
               color: #000;
               line-height: 1.2;
             }
             .room-number {
-              font-size: 16px;
+              font-size: 14px;
               font-weight: normal;
               color: #000;
               line-height: 1.2;
@@ -1008,6 +1015,7 @@ export default function AdminPanel() {
         <body>
           <div class="print-content">
             <div class="serial-box">
+              <div class="serial-label">সিরিয়াল নাম্বার</div>
               <div class="serial-number">${patient.serialNumber}</div>
             </div>
             <div class="room-number">রুম নম্বর: ${doctor?.roomNumber || 'N/A'}</div>
@@ -1867,6 +1875,7 @@ export default function AdminPanel() {
         setIsSidebarOpen={setIsSidebarOpen}
         settings={settings}
         canViewDashboard={canViewDashboard}
+        canViewOpdDashboard={canViewOpdDashboard}
         canCreateSerial={canCreateSerial}
         canEditSerial={canEditSerial}
         canManageDoctors={canManageDoctors}
@@ -1990,7 +1999,7 @@ export default function AdminPanel() {
           
             <div
               key={activeTab}>
-              {activeTab === 'dashboard-overview' && (
+              {activeTab === 'dashboard-overview' && canViewOpdDashboard && (
                 <div className="w-full px-2 md:px-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6 md:mb-8">
                     <div>
@@ -2287,7 +2296,7 @@ export default function AdminPanel() {
                 />
               </div>
             )}
-            {activeTab === 'opd-summary' && (
+            {activeTab === 'opd-summary' && canViewOpdDashboard && (
               <div className="w-full overflow-x-auto pb-8">
                 <OpdSummary 
                   doctors={doctors} 
@@ -2296,6 +2305,7 @@ export default function AdminPanel() {
                   selectedDate={selectedDate} 
                   userProfile={userProfile}
                   showToast={showToast}
+                  logActivity={logActivity}
                 />
               </div>
             )}
@@ -9538,6 +9548,7 @@ export default function AdminPanel() {
         settings={settings}
         canViewOverview={canViewOverview}
         canViewDashboard={canViewDashboard}
+        canViewOpdDashboard={canViewOpdDashboard}
         canViewRegistration={canViewRegistration}
         canViewLive={canViewLive}
         canViewDoctors={canViewDoctors}

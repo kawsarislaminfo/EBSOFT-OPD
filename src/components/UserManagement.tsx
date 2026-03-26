@@ -40,6 +40,7 @@ const defaultPermissions: UserPermissions = {
   // Dashboard & Overview
   canViewOverview: true,
   canViewDashboard: true,
+  canViewOpdDashboard: true,
   
   // Registration & Serial
   canViewRegistration: true,
@@ -89,6 +90,7 @@ const superAdminPermissions: UserPermissions = {
   // Dashboard & Overview
   canViewOverview: true,
   canViewDashboard: true,
+  canViewOpdDashboard: true,
   
   // Registration & Serial
   canViewRegistration: true,
@@ -138,6 +140,7 @@ const permMap: Record<string, string> = {
   // Dashboard & Overview
   canViewOverview: 'ওভারভিউ দেখা',
   canViewDashboard: 'ড্যাশবোর্ড দেখা',
+  canViewOpdDashboard: 'ওপিডি ড্যাশবোর্ড দেখা',
   
   // Registration & Serial
   canViewRegistration: 'রেজিস্ট্রেশন দেখা',
@@ -186,7 +189,7 @@ const permMap: Record<string, string> = {
 const permissionGroups = [
   {
     title: 'ড্যাশবোর্ড ও ওভারভিউ',
-    permissions: ['canViewOverview', 'canViewDashboard']
+    permissions: ['canViewOverview', 'canViewDashboard', 'canViewOpdDashboard']
   },
   {
     title: 'রেজিস্ট্রেশন ও সিরিয়াল',
@@ -372,6 +375,7 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
               // Dashboard & Overview
               canViewOverview: true,
               canViewDashboard: true,
+              canViewOpdDashboard: true,
               
               // Registration & Serial
               canViewRegistration: true,
@@ -498,6 +502,7 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
       // Dashboard & Overview
       canViewOverview: true,
       canViewDashboard: true,
+      canViewOpdDashboard: true,
       
       // Registration & Serial
       canViewRegistration: true,
@@ -545,6 +550,7 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
       // Dashboard & Overview
       canViewOverview: true,
       canViewDashboard: true,
+      canViewOpdDashboard: false,
       
       // Registration & Serial
       canViewRegistration: false,
@@ -671,6 +677,7 @@ export default function UserManagement({ logActivity, roleFilter, showToast }: {
           const newPermissions: UserPermissions = presetPermissions || {
             canViewOverview: grantAll,
             canViewDashboard: grantAll,
+            canViewOpdDashboard: grantAll,
             canViewRegistration: grantAll,
             canCreateSerial: grantAll,
             canEditSerial: grantAll,

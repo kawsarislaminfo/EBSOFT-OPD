@@ -53,6 +53,7 @@ export default function Sidebar({
   setIsSidebarOpen, 
   settings, 
   canViewDashboard, 
+  canViewOpdDashboard,
   canCreateSerial, 
   canEditSerial, 
   canManageDoctors, 
@@ -218,7 +219,7 @@ export default function Sidebar({
           />
         )}
 
-        {canViewDashboard && (
+        {canViewOpdDashboard && (
           <NavItem 
             iconName={settings?.menuItems?.dashboard?.icon || "LayoutDashboard"} 
             label={settings?.menuItems?.dashboard?.label || "ওপিডি ড্যাশবোর্ড"} 

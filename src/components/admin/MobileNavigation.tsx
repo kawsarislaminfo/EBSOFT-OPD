@@ -20,6 +20,7 @@ interface MobileNavigationProps {
   settings: AppSettings | null;
   canViewOverview: boolean;
   canViewDashboard: boolean;
+  canViewOpdDashboard: boolean;
   canViewRegistration: boolean;
   canViewLive: boolean;
   canViewDoctors: boolean;
@@ -40,6 +41,7 @@ export default function MobileNavigation({
   settings,
   canViewOverview,
   canViewDashboard,
+  canViewOpdDashboard,
   canViewRegistration,
   canViewLive,
   canViewDoctors,
@@ -65,8 +67,8 @@ export default function MobileNavigation({
 
   const navItems = [
     { id: 'dashboard-opd-summary', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.doctorOverview, 'Activity', size), label: settings?.mobileNavNicknames?.doctorOverview || 'ওভারভিউ', visible: (settings?.mobileNavItems?.doctorOverview !== false) && canViewOverview && (!settings?.hiddenSections?.['dashboard-opd-summary'] || isSuperAdmin) },
-    { id: 'opd-summary', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.opdSummary, 'FileText', size), label: settings?.mobileNavNicknames?.opdSummary || 'ওপিডি সামারি', visible: (settings?.mobileNavItems?.opdSummary !== false) && canViewDashboard && (!settings?.hiddenSections?.['opd-summary'] || isSuperAdmin) },
-    { id: 'dashboard-overview', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.dashboard, 'LayoutDashboard', size), label: settings?.mobileNavNicknames?.dashboard || 'ড্যাশবোর্ড', visible: (settings?.mobileNavItems?.dashboard !== false) && canViewDashboard && (!settings?.hiddenSections?.['dashboard-overview'] || isSuperAdmin) },
+    { id: 'opd-summary', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.opdSummary, 'FileText', size), label: settings?.mobileNavNicknames?.opdSummary || 'ওপিডি সামারি', visible: (settings?.mobileNavItems?.opdSummary !== false) && canViewOpdDashboard && (!settings?.hiddenSections?.['opd-summary'] || isSuperAdmin) },
+    { id: 'dashboard-overview', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.dashboard, 'LayoutDashboard', size), label: settings?.mobileNavNicknames?.dashboard || 'ড্যাশবোর্ড', visible: (settings?.mobileNavItems?.dashboard !== false) && canViewOpdDashboard && (!settings?.hiddenSections?.['dashboard-overview'] || isSuperAdmin) },
     { id: 'registration', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.registration, 'UserPlus', size), label: settings?.mobileNavNicknames?.registration || 'রেজিস্ট্রেশন', visible: (settings?.mobileNavItems?.registration !== false) && canViewRegistration && (!settings?.hiddenSections?.['registration'] || isSuperAdmin) },
     { id: 'management', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.patient, 'Users', size), label: settings?.mobileNavNicknames?.patient || 'লাইভ', visible: (settings?.mobileNavItems?.patient !== false) && canViewLive && (!settings?.hiddenSections?.['management'] || isSuperAdmin) },
     { id: 'doctors-department', icon: (size?: number) => renderNavIcon(settings?.mobileNavIcons?.doctor, 'Stethoscope', size), label: settings?.mobileNavNicknames?.doctor || 'ডাক্তার', visible: (settings?.mobileNavItems?.doctor !== false) && canViewDoctors && (!settings?.hiddenSections?.['doctors-management'] || isSuperAdmin) },

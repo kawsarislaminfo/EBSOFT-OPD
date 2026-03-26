@@ -2,12 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Doctor, Patient, AppSettings, DailyOpdStats, UserProfile } from '../../types';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import html2canvas from 'html2canvas';
-import { Save, Printer, Loader2, Download, FileText, FileSpreadsheet, File, MessageCircle, MessageSquare, Edit, Eye } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, ImageRun } from 'docx';
+import { Save, Printer, Loader2, Edit, Eye } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface OpdSummaryProps {
   doctors: Doctor[];
@@ -16,9 +12,10 @@ interface OpdSummaryProps {
   selectedDate: string;
   userProfile: UserProfile | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  logActivity: (type: any, action: string, details: string) => Promise<void>;
 }
 
-export default function OpdSummary({ doctors, patients, settings, selectedDate, userProfile, showToast }: OpdSummaryProps) {
+export default function OpdSummary({ doctors, patients, settings, selectedDate, userProfile, showToast, logActivity }: OpdSummaryProps) {
   const today = selectedDate; 
   const formattedDate = new Date(selectedDate).toLocaleDateString('en-GB'); 
   const [dailyStats, setDailyStats] = useState<DailyOpdStats | null>(null);
@@ -54,140 +51,10 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
   }, [today]);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
   const isAdmin = userProfile?.role === 'super-admin' || userProfile?.role === 'admin';
   const canEdit = isAdmin || userProfile?.permissions?.canEditOpdSummary;
   const [isEditMode, setIsEditMode] = useState(false);
-
-  const getSummaryDataForExport = () => {
-    const data = [];
-    const enabledDepartments = settings?.opdSummaryDepartments?.filter(d => d.enabled) || [];
-    
-    enabledDepartments.forEach(dept => {
-      const fields = settings?.opdSummarySectionFields?.[dept.id] || [];
-      fields.forEach(field => {
-        data.push({
-          Department: dept.name,
-          Field: field.label,
-          Value: localStats?.[dept.id as keyof DailyOpdStats]?.[field.id] || 0
-        });
-      });
-    });
-    return data;
-  };
-
-  const sharePDF = async () => {
-    const element = document.getElementById('print-area');
-    if (!element) return;
-    
-    const originalOverflow = element.style.overflowX;
-    element.style.overflowX = 'visible';
-    
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-    
-    element.style.overflowX = originalOverflow;
-    
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      const file = new File([blob], `OPD_Summary_${today}.png`, { type: 'image/png' });
-      
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: 'OPD Summary',
-            text: `OPD Summary for ${formattedDate}`
-          });
-        } catch (error) {
-          console.error('Error sharing:', error);
-          showToast('শেয়ার করতে সমস্যা হয়েছে।', 'error');
-        }
-      } else {
-        showToast('আপনার ব্রাউজার সরাসরি ফাইল শেয়ারিং সাপোর্ট করে না।', 'info');
-        downloadPDF(); // Fallback to download
-      }
-    }, 'image/png');
-    
-    setShowDownloadMenu(false);
-  };
-
-  const downloadPDF = async () => {
-    const element = document.getElementById('print-area');
-    if (!element) return;
-    
-    const originalOverflow = element.style.overflowX;
-    element.style.overflowX = 'visible';
-    
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-    
-    element.style.overflowX = originalOverflow;
-    
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`OPD_Summary_${today}.pdf`);
-    setShowDownloadMenu(false);
-  };
-
-  const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(getSummaryDataForExport());
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Summary");
-    XLSX.writeFile(workbook, `OPD_Summary_${today}.xlsx`);
-    setShowDownloadMenu(false);
-  };
-
-  const downloadWord = async () => {
-    const element = document.getElementById('print-area');
-    if (!element) return;
-    
-    const originalOverflow = element.style.overflowX;
-    element.style.overflowX = 'visible';
-    
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-    
-    element.style.overflowX = originalOverflow;
-    
-    const imgData = canvas.toDataURL('image/png');
-    
-    // Convert base64 to Uint8Array for docx
-    const byteString = atob(imgData.split(',')[1]);
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    
-    const doc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({
-            children: [
-              new ImageRun({
-                data: Buffer.from(ia),
-                transformation: {
-                  width: 600,
-                  height: (canvas.height * 600) / canvas.width,
-                },
-                type: 'png',
-              }),
-            ],
-          }),
-        ],
-      }],
-    });
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `OPD_Summary_${today}.docx`;
-    link.click();
-    setShowDownloadMenu(false);
-  };
 
   const saveStats = async () => {
     if (!localStats) return;
@@ -203,6 +70,23 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
       };
       
       await setDoc(statsRef, dataToSave, { merge: true });
+      
+      // Also save width and signature toggle if changed
+      const settingsUpdates: any = {};
+      if (localWidth !== settings?.opdSummaryWidth) {
+        settingsUpdates.opdSummaryWidth = localWidth;
+      }
+      if (showSignature !== settings?.opdSummarySections?.signature) {
+        settingsUpdates.opdSummarySections = {
+          ...(settings?.opdSummarySections || {}),
+          signature: showSignature
+        };
+      }
+
+      if (Object.keys(settingsUpdates).length > 0) {
+        await setDoc(doc(db, 'settings', 'general'), settingsUpdates, { merge: true });
+      }
+
       setDailyStats(localStats);
       showToast('পরিসংখ্যান সফলভাবে সংরক্ষিত হয়েছে।', 'success');
     } catch (error) {
@@ -274,6 +158,7 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
         return procDept === doctor.department;
       });
       return {
+        id: doctor.id,
         sl: index + 1, // Starting from 1
         name: doctor.name,
         department: doctor.department,
@@ -561,11 +446,14 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
         doctors: gynecologyDoctors.map(d => ({ id: d.id, name: d.name, department: d.department })),
         stats: localStats?.gynecology || {}
       },
-      radiology: localStats?.radiology || { ct: 0, xray: 0 },
+      radiology: {
+        ct: localStats?.radiology?.ct ?? radiologyPatients.filter(p => p.service.toLowerCase().includes('ct')).length,
+        xray: localStats?.radiology?.xray ?? radiologyPatients.filter(p => p.service.toLowerCase().includes('xray')).length,
+      },
       emergency: {
         doctor: emergencyDoctor,
         dept: 'EMERGENCY',
-        total: localStats?.emergency.total || 0
+        total: localStats?.emergency?.total ?? emergencyPatients.length
       },
       dentalSurgery: {
         doctors: finalDentalDoctors.map(d => ({ id: d.id, name: d.name, department: d.department })),
@@ -586,12 +474,16 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
   }, [doctors, patients, today, settings, localStats]);
 
   const [localWidth, setLocalWidth] = useState<number>(settings?.opdSummaryWidth || 100);
+  const [showSignature, setShowSignature] = useState<boolean>(settings?.opdSummarySections?.signature !== false);
 
   useEffect(() => {
     if (settings?.opdSummaryWidth) {
       setLocalWidth(settings.opdSummaryWidth);
     }
-  }, [settings?.opdSummaryWidth]);
+    if (settings?.opdSummarySections?.signature !== undefined) {
+      setShowSignature(settings.opdSummarySections.signature);
+    }
+  }, [settings?.opdSummaryWidth, settings?.opdSummarySections?.signature]);
 
   const fontSize = settings?.opdSummaryFontSize || 14;
   const fontFamily = settings?.opdSummaryFontFamily || 'sans-serif';
@@ -612,26 +504,20 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
           />
           <span className="hidden md:block text-xs font-bold text-slate-700 w-8">{localWidth}%</span>
         </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <button
-              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-none font-bold hover:bg-blue-700 transition-all shadow-sm flex items-center gap-2 text-sm"
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <button 
+              onClick={() => setShowSignature(!showSignature)}
+              className={cn(
+                "px-3 py-2 rounded-none font-bold transition-all shadow-sm flex items-center gap-2 text-xs",
+                showSignature ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500"
+              )}
+              title={showSignature ? "স্বাক্ষর সেকশন লুকান" : "স্বাক্ষর সেকশন দেখান"}
             >
-              <Download size={16} /> <span className="hidden sm:inline">ডাউনলোড</span>
+              <div className={cn("w-3 h-3 rounded-full", showSignature ? "bg-emerald-400" : "bg-slate-300")} />
+              <span className="hidden lg:inline">স্বাক্ষর</span>
             </button>
-            {showDownloadMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl z-50">
-                <button onClick={downloadPDF} className="w-full text-left px-4 py-2 hover:bg-slate-100 flex items-center gap-2 text-sm"><FileText size={16} /> PDF</button>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={sharePDF}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-none font-bold hover:bg-emerald-700 transition-all shadow-sm flex items-center gap-2 text-sm"
-          >
-            <MessageSquare size={16} /> <span className="hidden sm:inline">WhatsApp</span>
-          </button>
+          )}
           {canEdit && (
             <button 
               onClick={() => setIsEditMode(!isEditMode)}
@@ -738,22 +624,20 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                         <td className="border border-dotted border-black px-1 py-0">{row.name}</td>
                         <td className="border border-dotted border-black px-1 py-0 text-center">{row.department}</td>
                         {fields.map(field => {
-                          const value = field.source === 'auto' ? (row as any)[field.key || ''] : (localStats?.patientSummary?.[field.id] || 0);
+                          const statKey = row.id ? `${row.id}_${field.id}` : field.id;
+                          const autoValue = (row as any)[field.key || ''] || 0;
+                          const displayValue = localStats?.patientSummary?.[statKey] ?? (field.source === 'auto' ? autoValue : 0);
                           return (
                             <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center">
-                              {field.source === 'auto' ? value : (
-                                <>
-                                  {isEditMode ? (
-                                    <input 
-                                      type="number" 
-                                      value={localStats?.patientSummary?.[field.id] || 0} 
-                                      onChange={(e) => updateSectionStat('patientSummary', field.id, e.target.value)} 
-                                      className="w-10 text-center border rounded text-[10px]" 
-                                    />
-                                  ) : (
-                                    <span className="font-bold">{localStats?.patientSummary?.[field.id] || 0}</span>
-                                  )}
-                                </>
+                              {isEditMode ? (
+                                <input 
+                                  type="number" 
+                                  value={displayValue} 
+                                  onChange={(e) => updateSectionStat('patientSummary', statKey, e.target.value)} 
+                                  className="w-10 text-center border rounded text-[10px]" 
+                                />
+                              ) : (
+                                <span className="font-bold">{displayValue}</span>
                               )}
                             </td>
                           );
@@ -763,7 +647,12 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                     <tr>
                       <td className="border border-dotted border-black px-1 py-0 text-right font-bold" colSpan={4}>GRAND TOTAL</td>
                       {fields.map(field => {
-                        const total = field.source === 'auto' ? (field.key === 'new' ? summaryData.totalNew : summaryData.totalFollowup) : (localStats?.patientSummary?.[field.id] || 0);
+                        const total = summaryData.summary.reduce((acc, row) => {
+                          const statKey = row.id ? `${row.id}_${field.id}` : field.id;
+                          const autoValue = (row as any)[field.key || ''] || 0;
+                          const displayValue = localStats?.patientSummary?.[statKey] ?? (field.source === 'auto' ? autoValue : 0);
+                          return acc + (Number(displayValue) || 0);
+                        }, 0);
                         return (
                           <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">{total}</td>
                         );
@@ -813,22 +702,19 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                             <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{doc.department}</td>
                             {fields.map(field => {
                               const statKey = doc.id ? `${doc.id}_${field.id}` : field.id;
-                              const value = field.source === 'auto' ? (doc as any)[field.key || ''] : (localStats?.ultrasonogram?.[statKey] || 0);
+                              const autoValue = field.source === 'auto' ? (doc as any)[field.key || ''] : 0;
+                              const displayValue = localStats?.ultrasonogram?.[statKey] ?? autoValue;
                               return (
                                 <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
-                                  {field.source === 'auto' ? value : (
-                                    <>
-                                    {isEditMode ? (
-                                      <input 
-                                        type="number" 
-                                        value={localStats?.ultrasonogram?.[statKey] || 0} 
-                                        onChange={(e) => updateSectionStat('ultrasonogram', statKey, e.target.value)} 
-                                        className="w-10 text-center border rounded text-[10px]" 
-                                      />
-                                    ) : (
-                                      <span className="font-bold">{localStats?.ultrasonogram?.[statKey] || 0}</span>
-                                    )}
-                                    </>
+                                  {isEditMode ? (
+                                    <input 
+                                      type="number" 
+                                      value={displayValue} 
+                                      onChange={(e) => updateSectionStat('ultrasonogram', statKey, e.target.value)} 
+                                      className="w-10 text-center border rounded text-[10px]" 
+                                    />
+                                  ) : (
+                                    <span className="font-bold">{displayValue}</span>
                                   )}
                                 </td>
                               );
@@ -841,24 +727,24 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                           <td className="border border-dotted border-black px-1 py-0 text-center">1</td>
                           <td className="border border-dotted border-black px-1 py-0 text-slate-400 italic">কোনো ডাক্তার পাওয়া যায়নি</td>
                           <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{settings?.opdSummarySectionDepts?.ultrasonogram || summaryData.ultrasonogram.dept}</td>
-                          {fields.map(field => (
-                            <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
-                              {field.source === 'auto' ? 0 : (
-                                <>
+                          {fields.map(field => {
+                            const autoValue = field.source === 'auto' ? 0 : 0; // Placeholder for auto logic if needed
+                            const displayValue = localStats?.ultrasonogram?.[field.id] ?? autoValue;
+                            return (
+                              <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
                                 {isEditMode ? (
                                   <input 
                                     type="number" 
-                                    value={localStats?.ultrasonogram?.[field.id] || 0} 
+                                    value={displayValue} 
                                     onChange={(e) => updateSectionStat('ultrasonogram', field.id, e.target.value)} 
                                     className="w-10 text-center border rounded text-[10px]" 
                                   />
                                 ) : (
-                                  <span className="font-bold">{localStats?.ultrasonogram?.[field.id] || 0}</span>
+                                  <span className="font-bold">{displayValue}</span>
                                 )}
-                                </>
-                              )}
-                            </td>
-                          ))}
+                              </td>
+                            );
+                          })}
                         </tr>
                       );
                     })()}
@@ -905,17 +791,19 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                             <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{doc.department}</td>
                             {fields.map(field => {
                               const statKey = doc.id ? `${doc.id}_${field.id}` : field.id;
+                              const autoValue = field.source === 'auto' ? (doc as any)[field.key || ''] : 0;
+                              const displayValue = localStats?.gynecology?.[statKey] ?? autoValue;
                               return (
                                 <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
                                   {isEditMode ? (
                                     <input 
                                       type="number" 
-                                      value={localStats?.gynecology?.[statKey] || 0} 
+                                      value={displayValue} 
                                       onChange={(e) => updateSectionStat('gynecology', statKey, e.target.value)} 
                                       className="w-10 text-center border rounded text-[10px]" 
                                     />
                                   ) : (
-                                    <span className="font-bold">{localStats?.gynecology?.[statKey] || 0}</span>
+                                    <span className="font-bold">{displayValue}</span>
                                   )}
                                 </td>
                               );
@@ -928,18 +816,23 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                           <td className="border border-dotted border-black px-1 py-0 text-center">1</td>
                           <td className="border border-dotted border-black px-1 py-0 text-slate-400 italic">কোনো ডাক্তার পাওয়া যায়নি</td>
                           <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{settings?.opdSummarySectionDepts?.gynecology || 'GYNAE & OBS'}</td>
-                          {fields.map(field => (
-                            <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
-                              <input 
-                                type="number" 
-                                value={localStats?.gynecology?.[field.id] || 0} 
-                                onChange={(e) => updateSectionStat('gynecology', field.id, e.target.value)} 
-                                disabled={!isEditMode}
-                                className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                              />
-                              <span className="hidden print:inline">{localStats?.gynecology?.[field.id] || 0}</span>
-                            </td>
-                          ))}
+                          {fields.map(field => {
+                            const displayValue = localStats?.gynecology?.[field.id] || 0;
+                            return (
+                              <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
+                                {isEditMode ? (
+                                  <input 
+                                    type="number" 
+                                    value={displayValue} 
+                                    onChange={(e) => updateSectionStat('gynecology', field.id, e.target.value)} 
+                                    className="w-10 text-center border rounded text-[10px]" 
+                                  />
+                                ) : (
+                                  <span className="font-bold">{displayValue}</span>
+                                )}
+                              </td>
+                            );
+                          })}
                         </tr>
                       );
                     })()}
@@ -982,17 +875,19 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                           <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{settings?.opdSummarySectionDepts?.radiology || 'RADIOLOGY & IMAGING'}</td>
                           {fields.map(field => {
                             const statKey = manualRows.length > 0 ? `${row.id}_${field.id}` : field.id;
+                            const autoValue = (summaryData.radiology as any)[field.id] || 0;
+                            const displayValue = localStats?.radiology?.[statKey] ?? autoValue;
                             return (
                               <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
                                 {isEditMode ? (
                                   <input 
                                     type="number" 
-                                    value={localStats?.radiology?.[statKey] || 0} 
+                                    value={displayValue} 
                                     onChange={(e) => updateSectionStat('radiology', statKey, e.target.value)} 
                                     className="w-10 text-center border rounded text-[10px]" 
                                   />
                                 ) : (
-                                  <span className="font-bold">{localStats?.radiology?.[statKey] || 0}</span>
+                                  <span className="font-bold">{displayValue}</span>
                                 )}
                               </td>
                             );
@@ -1040,17 +935,19 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                           <td className="border border-dotted border-black px-1 py-0 text-center uppercase">{settings?.opdSummarySectionDepts?.emergency || 'EMERGENCY'}</td>
                           {fields.map(field => {
                             const statKey = manualRows.length > 0 ? `${row.id}_${field.id}` : field.id;
+                            const autoValue = summaryData.emergency.total || 0;
+                            const displayValue = localStats?.emergency?.[statKey] ?? autoValue;
                             return (
                               <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
                                 {isEditMode ? (
                                   <input 
                                     type="number" 
-                                    value={localStats?.emergency?.[statKey] || 0} 
+                                    value={displayValue} 
                                     onChange={(e) => updateSectionStat('emergency', statKey, e.target.value)} 
                                     className="w-10 text-center border rounded text-[10px]" 
                                   />
                                 ) : (
-                                  <span className="font-bold">{localStats?.emergency?.[statKey] || 0}</span>
+                                  <span className="font-bold">{displayValue}</span>
                                 )}
                               </td>
                             );
@@ -1092,8 +989,8 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
               fields.forEach(field => {
                 const statKey = `${doc.id}_${field.id}`;
                 const autoValue = summaryData.dentalSurgery?.autoStats?.[doc.id]?.[field.id] || 0;
-                const manualValue = localStats?.dentalSurgery?.[statKey] || 0;
-                const displayValue = field.source === 'auto' ? (manualValue || autoValue) : manualValue;
+                const manualValue = localStats?.dentalSurgery?.[statKey];
+                const displayValue = field.source === 'auto' ? (manualValue ?? autoValue) : (manualValue ?? 0);
                 
                 if (displayValue > 0 || isEditMode) {
                   rowsToRender.push({ doc, field, statKey, displayValue });
@@ -1162,28 +1059,15 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                             
                             <td className="border border-dotted border-black px-1 py-0">{row.field.label}</td>
                             <td className="border border-dotted border-black px-1 py-0 text-center font-bold">
-                              {row.field.source === 'auto' ? (
-                                <>
-                                  <input 
-                                    type="number" 
-                                    value={row.displayValue} 
-                                    onChange={(e) => updateSectionStat('dentalSurgery', row.statKey, e.target.value)} 
-                                    disabled={!isEditMode}
-                                    className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                                  />
-                                  <span className="hidden print:inline">{row.displayValue}</span>
-                                </>
+                              {isEditMode ? (
+                                <input 
+                                  type="number" 
+                                  value={row.displayValue} 
+                                  onChange={(e) => updateSectionStat('dentalSurgery', row.statKey, e.target.value)} 
+                                  className="w-10 text-center border rounded text-[10px]" 
+                                />
                               ) : (
-                                <>
-                                  <input 
-                                    type="number" 
-                                    value={localStats?.dentalSurgery?.[row.statKey] || 0} 
-                                    onChange={(e) => updateSectionStat('dentalSurgery', row.statKey, e.target.value)} 
-                                    disabled={!isEditMode}
-                                    className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                                  />
-                                  <span className="hidden print:inline">{localStats?.dentalSurgery?.[row.statKey] || 0}</span>
-                                </>
+                                <span className="font-bold">{row.displayValue}</span>
                               )}
                             </td>
                           </tr>
@@ -1222,8 +1106,8 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
               fields.forEach(field => {
                 const statKey = `${doc.id}_${field.id}`;
                 const autoValue = summaryData.cardiology?.autoStats?.[doc.id]?.[field.id] || 0;
-                const manualValue = localStats?.cardiology?.[statKey] || 0;
-                const displayValue = field.source === 'auto' ? (manualValue || autoValue) : manualValue;
+                const manualValue = localStats?.cardiology?.[statKey];
+                const displayValue = field.source === 'auto' ? (manualValue ?? autoValue) : (manualValue ?? 0);
                 
                 if (displayValue > 0 || isEditMode) {
                   rowsToRender.push({ doc, field, statKey, displayValue });
@@ -1292,28 +1176,15 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                             
                             <td className="border border-dotted border-black px-1 py-0">{row.field.label}</td>
                             <td className="border border-dotted border-black px-1 py-0 text-center font-bold">
-                              {row.field.source === 'auto' ? (
-                                <>
-                                  <input 
-                                    type="number" 
-                                    value={row.displayValue} 
-                                    onChange={(e) => updateSectionStat('cardiology', row.statKey, e.target.value)} 
-                                    disabled={!isEditMode}
-                                    className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                                  />
-                                  <span className="hidden print:inline">{row.displayValue}</span>
-                                </>
+                              {isEditMode ? (
+                                <input 
+                                  type="number" 
+                                  value={row.displayValue} 
+                                  onChange={(e) => updateSectionStat('cardiology', row.statKey, e.target.value)} 
+                                  className="w-10 text-center border rounded text-[10px]" 
+                                />
                               ) : (
-                                <>
-                                  <input 
-                                    type="number" 
-                                    value={localStats?.cardiology?.[row.statKey] || 0} 
-                                    onChange={(e) => updateSectionStat('cardiology', row.statKey, e.target.value)} 
-                                    disabled={!isEditMode}
-                                    className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                                  />
-                                  <span className="hidden print:inline">{localStats?.cardiology?.[row.statKey] || 0}</span>
-                                </>
+                                <span className="font-bold">{row.displayValue}</span>
                               )}
                             </td>
                           </tr>
@@ -1353,8 +1224,8 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
               fields.forEach(field => {
                 const statKey = `${doc.id}_${field.id}`;
                 const autoValue = summaryData.gastroenterology?.autoStats?.[doc.id]?.[field.id] || 0;
-                const manualValue = localStats?.gastroenterology?.[statKey] || 0;
-                const displayValue = field.source === 'auto' ? (manualValue || autoValue) : manualValue;
+                const manualValue = localStats?.gastroenterology?.[statKey];
+                const displayValue = field.source === 'auto' ? (manualValue ?? autoValue) : (manualValue ?? 0);
                 
                 if (displayValue > 0 || isEditMode) {
                   rowsToRender.push({ doc, field, statKey, displayValue });
@@ -1423,28 +1294,15 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                             
                             <td className="border border-dotted border-black px-1 py-0">{row.field.label}</td>
                             <td className="border border-dotted border-black px-1 py-0 text-center font-bold">
-                              {row.field.source === 'auto' ? (
-                                <>
-                                  <input 
-                                    type="number" 
-                                    value={row.displayValue} 
-                                    onChange={(e) => updateSectionStat('gastroenterology', row.statKey, e.target.value)} 
-                                    disabled={!isEditMode}
-                                    className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                                  />
-                                  <span className="hidden print:inline">{row.displayValue}</span>
-                                </>
+                              {isEditMode ? (
+                                <input 
+                                  type="number" 
+                                  value={row.displayValue} 
+                                  onChange={(e) => updateSectionStat('gastroenterology', row.statKey, e.target.value)} 
+                                  className="w-10 text-center border rounded text-[10px]" 
+                                />
                               ) : (
-                                <>
-                                  <input 
-                                    type="number" 
-                                    value={localStats?.gastroenterology?.[row.statKey] || 0} 
-                                    onChange={(e) => updateSectionStat('gastroenterology', row.statKey, e.target.value)} 
-                                    disabled={!isEditMode}
-                                    className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                                  />
-                                  <span className="hidden print:inline">{localStats?.gastroenterology?.[row.statKey] || 0}</span>
-                                </>
+                                <span className="font-bold">{row.displayValue}</span>
                               )}
                             </td>
                           </tr>
@@ -1489,14 +1347,16 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
                             const statKey = manualRows.length > 0 ? `${row.id}_${field.id}` : field.id;
                             return (
                               <td key={field.id} className="border border-dotted border-black px-1 py-0 text-center font-bold">
-                                <input 
-                                  type="number" 
-                                  value={localStats?.customStats?.[customSection.id]?.[statKey] || 0} 
-                                  onChange={(e) => updateCustomStat(customSection.id, statKey, e.target.value)} 
-                                  disabled={!isEditMode}
-                                  className="w-10 text-center border rounded print:hidden text-[10px] disabled:bg-slate-50 disabled:text-slate-500" 
-                                />
-                                <span className="hidden print:inline">{localStats?.customStats?.[customSection.id]?.[statKey] || 0}</span>
+                                {isEditMode ? (
+                                  <input 
+                                    type="number" 
+                                    value={localStats?.customStats?.[customSection.id]?.[statKey] || 0} 
+                                    onChange={(e) => updateCustomStat(customSection.id, statKey, e.target.value)} 
+                                    className="w-10 text-center border rounded text-[10px]" 
+                                  />
+                                ) : (
+                                  <span className="font-bold">{localStats?.customStats?.[customSection.id]?.[statKey] || 0}</span>
+                                )}
                               </td>
                             );
                           })}
@@ -1514,23 +1374,25 @@ export default function OpdSummary({ doctors, patients, settings, selectedDate, 
         })()}
 
         {/* Signature Section */}
-        <div className="mt-12 grid grid-cols-3 gap-4 px-4">
-          <div className="flex flex-col items-center">
-            <p className="text-[10px] font-bold uppercase mb-4 h-4">{userProfile?.name || '\u00A0'}</p>
-            <div className="w-full border-t border-black mb-2"></div>
-            <p className="text-[10px] font-bold">PREPARED BY</p>
+        {showSignature && (
+          <div className="mt-12 grid grid-cols-3 gap-4 px-4">
+            <div className="flex flex-col items-center">
+              <p className="text-[10px] font-bold uppercase mb-4 h-4">{userProfile?.name || '\u00A0'}</p>
+              <div className="w-full border-t border-black mb-2"></div>
+              <p className="text-[10px] font-bold">PREPARED BY</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <p className="text-[10px] font-bold uppercase mb-4 h-4">{'\u00A0'}</p>
+              <div className="w-full border-t border-black mb-2"></div>
+              <p className="text-[10px] font-bold">HR ADMIN</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <p className="text-[10px] font-bold uppercase mb-4 h-4">{'\u00A0'}</p>
+              <div className="w-full border-t border-black mb-2"></div>
+              <p className="text-[10px] font-bold">APPROVED BY</p>
+            </div>
           </div>
-          <div className="flex flex-col items-center">
-            <p className="text-[10px] font-bold uppercase mb-4 h-4">{'\u00A0'}</p>
-            <div className="w-full border-t border-black mb-2"></div>
-            <p className="text-[10px] font-bold">HR ADMIN</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <p className="text-[10px] font-bold uppercase mb-4 h-4">{'\u00A0'}</p>
-            <div className="w-full border-t border-black mb-2"></div>
-            <p className="text-[10px] font-bold">APPROVED BY</p>
-          </div>
-        </div>
+        )}
         <div className="mt-4 text-center">
           <p className="text-[8px] text-slate-400">Printed on: {new Date().toLocaleString('en-GB')}</p>
         </div>
