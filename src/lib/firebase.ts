@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { getAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, signOut, signInWithPopup } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -44,7 +44,9 @@ const firestoreDatabaseId = (import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID
   ? import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID
   : firebaseConfigJson.firestoreDatabaseId;
 
-export const db = app ? getFirestore(app, firestoreDatabaseId) : null as any;
+export const db = app ? initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firestoreDatabaseId) : null as any;
 
 // Use getAuth for safer initialization
 export const auth = app ? getAuth(app) : null as any;
@@ -101,36 +103,36 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   
   // Only throw the JSON string if it's a permission error or similar
   // to help the agent diagnose issues.
-  if (errorMessage.includes('insufficient permissions') || errorMessage.includes('permission-denied')) {
-    const safeStringify = (obj: any) => {
-      try {
-        const cache = new WeakSet();
-        return JSON.stringify(obj, (key, value) => {
-          if (typeof value === 'object' && value !== null) {
-            if (cache.has(value)) {
-              return;
+    if (errorMessage.includes('insufficient permissions') || errorMessage.includes('permission-denied')) {
+      const safeStringify = (obj: any) => {
+        try {
+          const cache = new WeakSet();
+          return JSON.stringify(obj, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+              if (cache.has(value)) {
+                return '[Circular]';
+              }
+              cache.add(value);
+              
+              // Handle Firestore Timestamp
+              if (value.seconds !== undefined && value.nanoseconds !== undefined && typeof value.toDate === 'function') {
+                return value.toDate().toISOString();
+              }
+              
+              // Handle Firestore DocumentReference
+              if (typeof value.path === 'string' && typeof value.id === 'string' && value.firestore) {
+                return `ref:${value.path}`;
+              }
             }
-            cache.add(value);
-            
-            // Handle Firestore Timestamp
-            if (value.seconds !== undefined && value.nanoseconds !== undefined && typeof value.toDate === 'function') {
-              return value.toDate().toISOString();
-            }
-            
-            // Handle Firestore DocumentReference
-            if (typeof value.path === 'string' && typeof value.id === 'string' && value.firestore) {
-              return `ref:${value.path}`;
-            }
-          }
-          return value;
-        });
-      } catch (e) {
-        return JSON.stringify({ error: 'Could not stringify object', message: e instanceof Error ? e.message : String(e) });
-      }
-    };
+            return value;
+          });
+        } catch (e) {
+          return JSON.stringify({ error: 'Could not stringify object', message: e instanceof Error ? e.message : String(e) });
+        }
+      };
 
-    throw new Error(safeStringify(errInfo));
-  }
+      throw new Error(safeStringify(errInfo));
+    }
   
   throw error;
 }

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { Activity, ChevronRight, UserX, CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Patient, AppSettings } from '../types';
@@ -25,7 +24,7 @@ const PatientCard = React.forwardRef<HTMLDivElement, PatientCardProps>(({ patien
   };
 
   const getStatusIcon = () => {
-    if (isRunning) return <Activity className="w-6 h-6 animate-pulse" />;
+    if (isRunning) return <Activity className="w-6 h-6" />;
     if (isNext) return <ChevronRight className="w-6 h-6" />;
     if (isAbsent) return <UserX className="w-6 h-6" />;
     return null;
@@ -48,12 +47,8 @@ const PatientCard = React.forwardRef<HTMLDivElement, PatientCardProps>(({ patien
     : (settings?.waitingPatientText || '#ffffff');
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2 }}
       className={cn(
         "relative group flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all duration-200 will-change-transform transform-gpu",
         isRunning ? "shadow-lg scale-[1.01] z-10" : "shadow-sm"
@@ -77,7 +72,7 @@ const PatientCard = React.forwardRef<HTMLDivElement, PatientCardProps>(({ patien
             <VerificationBadge badge={patient.verifiedBadge} size={24} />
           </span>
           {isRunning && (
-            <span className="flex h-2 w-2 md:h-3 md:w-3 rounded-full bg-white animate-ping" />
+            <span className="flex h-2 w-2 md:h-3 md:w-3 rounded-full bg-white" />
           )}
         </div>
         <div className="flex items-center gap-2 md:gap-3 mt-0.5 md:mt-1">
@@ -106,10 +101,10 @@ const PatientCard = React.forwardRef<HTMLDivElement, PatientCardProps>(({ patien
       {/* Subtle Shine Effect for Running Patient */}
       {isRunning && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+          <div className="absolute inset-0 bg-white/10" />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 });
 

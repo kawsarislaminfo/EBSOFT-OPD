@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { Users, X, ShieldCheck, ChevronRight } from 'lucide-react';
 import { VerificationBadge } from './admin/AdminComponents';
 import { Doctor } from '../types';
@@ -20,52 +19,44 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
   activeDoctor, 
   onSelect 
 }) => {
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/90"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="bg-white rounded-none shadow-2xl max-w-7xl w-full overflow-hidden flex flex-col max-h-[85vh] border-4 border-blue-600"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 border-b-4 border-blue-600 flex justify-between items-center bg-slate-50">
-              <div className="flex items-center gap-4">
-                <div className="bg-blue-600 p-2 text-white">
-                  <Users size={24} />
-                </div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">ডাক্তার নির্বাচন করুন</h2>
-              </div>
-              <button 
-                onClick={onClose}
-                className="p-3 hover:bg-red-50 text-slate-400 hover:text-red-600 transition-all active:scale-90"
-              >
-                <X size={32} strokeWidth={3} />
-              </button>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/90"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-none shadow-2xl max-w-7xl w-full overflow-hidden flex flex-col max-h-[85vh] border-4 border-blue-600"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b-4 border-blue-600 flex justify-between items-center bg-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="bg-blue-600 p-2 text-white">
+              <Users size={24} />
             </div>
-            
-            <div className="p-6 md:p-8 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50">
-              {doctors.map((doc) => (
-                <motion.button
-                  key={`modal-doc-${doc.id}`}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={() => onSelect(doc)}
-                  className={cn(
-                    "flex flex-col p-5 border-2 transition-all relative group overflow-hidden bg-white rounded-2xl",
-                    activeDoctor?.id === doc.id 
-                      ? "border-blue-500 ring-2 ring-blue-500/20 shadow-xl" 
-                      : "border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md"
-                  )}
-                >
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">ডাক্তার নির্বাচন করুন</h2>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-3 hover:bg-red-50 text-slate-400 hover:text-red-600 transition-all active:scale-90"
+          >
+            <X size={32} strokeWidth={3} />
+          </button>
+        </div>
+        
+        <div className="p-6 md:p-8 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50">
+          {doctors.map((doc) => (
+            <button
+              key={`modal-doc-${doc.id}`}
+              onClick={() => onSelect(doc)}
+              className={cn(
+                "flex flex-col p-5 border-2 transition-all relative group overflow-hidden bg-white rounded-2xl",
+                activeDoctor?.id === doc.id 
+                  ? "border-blue-500 ring-2 ring-blue-500/20 shadow-xl" 
+                  : "border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md"
+              )}
+            >
                   <div className="flex items-center gap-4 mb-4">
                     <div className="relative">
                       <img 
@@ -114,17 +105,15 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                       <span>{activeDoctor?.id === doc.id ? 'নির্বাচিত' : 'নির্বাচন করুন'}</span>
                     </div>
                   </div>
-                </motion.button>
-              ))}
-            </div>
-            
-            <div className="p-4 bg-blue-600 text-white text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.5em]">Sajeda Jabbar Hospital • Live Sync System</p>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            </button>
+          ))}
+        </div>
+        
+        <div className="p-4 bg-blue-600 text-white text-center">
+          <p className="text-[10px] font-black uppercase tracking-[0.5em]">Sajeda Jabbar Hospital • Live Sync System</p>
+        </div>
+      </div>
+    </div>
   );
 };
 

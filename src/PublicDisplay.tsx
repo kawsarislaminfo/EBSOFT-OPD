@@ -6,7 +6,6 @@ import { Doctor, Patient, AppSettings } from './types';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { Clock, Calendar, Activity, Stethoscope, Monitor, ShieldCheck, ChevronDown, ChevronRight, UserX, AlertCircle, Maximize, Minimize, Link as LinkIcon, Play, User, Users, RefreshCw, X, LogIn, Sparkles, History, CheckCircle2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { VerificationBadge } from './components/admin/AdminComponents';
 
@@ -270,6 +269,9 @@ export default function PublicDisplay() {
       });
 
       const interval = setInterval(() => {
+        // Pause rotation if video is playing
+        if (showVideo) return;
+
         setActiveDoctor(current => {
           if (!current) return docsToRotate[0];
           const currentIndex = docsToRotate.findIndex(d => d.id === current.id);
@@ -280,7 +282,7 @@ export default function PublicDisplay() {
 
       return () => clearInterval(interval);
     }
-  }, [settings.displayDoctorMode, settings.displaySelectedDoctorId, settings.displayRotationInterval, doctors]);
+  }, [settings.displayDoctorMode, settings.displaySelectedDoctorId, settings.displayRotationInterval, doctors, showVideo]);
 
   useEffect(() => {
     if (!activeDoctor) return;
@@ -507,14 +509,12 @@ export default function PublicDisplay() {
       {/* Mobile Floating Action Button (Serial Check) - Hidden as per request */}
       {/* {!isLoggedIn && !isFullScreen && (
         <div className="fixed bottom-24 right-6 z-[60] lg:hidden">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+          <button
             onClick={() => setIsSerialCheckOpen(true)}
             className="w-16 h-16 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center border-4 border-white"
           >
             <Search size={28} />
-          </motion.button>
+          </button>
         </div>
       )} */}
 
@@ -584,23 +584,19 @@ export default function PublicDisplay() {
           <div className="flex items-center gap-2 md:gap-4">
             {/* Serial Check Button - Hidden as per request */}
             {/* {!isLoggedIn && !isFullScreen && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={() => setIsSerialCheckOpen(true)}
                 className="hidden md:flex items-center gap-2 px-4 py-2 bg-white border-2 border-slate-200 rounded-none text-slate-700 font-black text-sm hover:border-blue-600 hover:text-blue-600 transition-all shadow-sm active:scale-95"
               >
                 <Search size={18} />
                 <span>সিরিয়াল চেক</span>
-              </motion.button>
+              </button>
             )} */}
 
             {/* User Menu / Login Button - Hidden as per request */}
             {/* {!isFullScreen && (
               <div className="relative">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className={cn(
                     "p-2 md:p-3 transition-colors bg-transparent border-none outline-none",
@@ -608,21 +604,17 @@ export default function PublicDisplay() {
                   )}
                 >
                   <User className="w-7 h-7 md:w-8 md:h-8" strokeWidth={2.5} />
-                </motion.button>
+                </button>
 
-                <AnimatePresence>
-                  {isUserMenuOpen && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-[105]" 
-                        onClick={() => setIsUserMenuOpen(false)}
-                      />
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 top-full pt-2 z-[110]"
-                      >
+                {isUserMenuOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-[105]" 
+                      onClick={() => setIsUserMenuOpen(false)}
+                    />
+                    <div 
+                      className="absolute right-0 top-full pt-2 z-[110]"
+                    >
                         <div className="bg-white border-2 border-slate-900 shadow-2xl rounded-none py-2 min-w-[180px] overflow-hidden">
                           {!isLoggedIn ? (
                             <button
@@ -661,10 +653,9 @@ export default function PublicDisplay() {
                             </>
                           )}
                         </div>
-                      </motion.div>
+                      </div>
                     </>
                   )}
-                </AnimatePresence>
               </div>
             )} */}
           </div>
@@ -678,16 +669,11 @@ export default function PublicDisplay() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeDoctor.id}
-              {...transitionVariant}
-              className="flex-1 flex flex-col lg:flex-row"
-            >
+          <div className="flex-1 flex flex-col lg:flex-row">
             {/* Left: Doctor Profile */}
             <div 
               className={cn(
-                "w-full lg:w-1/3 p-6 md:p-8 border-b lg:border-b-0 lg:border-r flex flex-col items-center justify-center relative shrink-0 transition-all duration-500 will-change-transform transform-gpu",
+                "w-full lg:w-1/3 p-6 md:p-8 border-b lg:border-b-0 lg:border-r flex flex-col items-center justify-center relative shrink-0",
                 currentTheme.card
               )}
               style={{ 
@@ -718,13 +704,9 @@ export default function PublicDisplay() {
                 </div>
               )}
 
-              <AnimatePresence mode="wait">
+              <div className="w-full h-full">
                 {showVideo ? (
-                  <motion.div 
-                    key="video"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
+                  <div 
                     className="w-full flex flex-col items-center justify-center p-2"
                   >
                     <div className="w-full max-w-2xl aspect-video bg-black rounded-none overflow-hidden shadow-2xl border-4 md:border-8 border-white relative group z-10">
@@ -763,7 +745,7 @@ export default function PublicDisplay() {
                             {doctors.length > 1 && (
                               <button 
                                 onClick={() => setIsDoctorModalOpen(true)}
-                                className="p-2 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-full transition-all shadow-sm active:scale-90 group"
+                                className="p-2 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-full shadow-sm group"
                                 style={{ color: settings.primaryColor || '#2563eb' }}
                                 title="ডাক্তার পরিবর্তন করুন"
                               >
@@ -776,15 +758,9 @@ export default function PublicDisplay() {
                         <p className="text-lg md:text-xl font-bold uppercase tracking-[0.2em]" style={{ color: settings.primaryColor || '#2563eb' }}>{activeDoctor.department}</p>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 ) : (
-                  <motion.div 
-                    key="info"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.1 }}
-                    className="text-center flex flex-col items-center w-full"
-                  >
+                  <div className="text-center flex flex-col items-center w-full">
                     {settings.displayShowPhoto !== false && (
                       <div className="relative mb-6 md:mb-8 w-full max-w-[300px] md:max-w-none">
                         <img 
@@ -814,7 +790,7 @@ export default function PublicDisplay() {
                         {doctors.length > 1 && (
                           <button 
                             onClick={() => setIsDoctorModalOpen(true)}
-                            className="p-2.5 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-full transition-all shadow-md active:scale-90 group border border-blue-100"
+                            className="p-2.5 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-full shadow-md group border border-blue-100"
                             style={{ color: settings.primaryColor || '#2563eb' }}
                             title="ডাক্তার পরিবর্তন করুন"
                           >
@@ -855,86 +831,16 @@ export default function PublicDisplay() {
                         </div>
                       </div> */}
 
-                      {settings.displayShowRoom !== false && activeDoctor.roomNumber && (
-                        <div className="pt-4 border-t border-slate-200/20">
-                          <p className={cn("text-[8px] md:text-xs font-black uppercase tracking-[0.3em] mb-1 opacity-50", currentTheme.text)}>রুম নাম্বার</p>
-                          <p className={cn("text-2xl md:text-4xl font-black", currentTheme.accent)}>{activeDoctor.roomNumber}</p>
-                        </div>
-                      )}
                     </div>
-
-                    {/* Next Doctor Preview */}
-                    {settings.displayShowNextDoctor !== false && nextDoctor && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-8 p-4 w-full bg-blue-600/10 border border-blue-500/20 rounded-none flex items-center gap-4"
-                      >
-                        <div className="shrink-0">
-                          <img src={nextDoctor.photoUrl || `https://picsum.photos/seed/${nextDoctor.id}/100/100`} className="w-12 h-12 rounded-none object-cover grayscale" alt="" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-blue-500">পরবর্তী ডাক্তার</p>
-                          <p className={cn("text-sm font-bold truncate max-w-[150px] flex items-center gap-1", currentTheme.text)}>
-                            {nextDoctor.name}
-                            <VerificationBadge badge={nextDoctor.verifiedBadge} size={12} />
-                          </p>
-                        </div>
-                        <div className="ml-auto">
-                          <RefreshCw size={14} className="text-blue-500 animate-spin-slow" />
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {/* Patient History */}
-                    {settings.displayShowHistory && (
-                      <div className="mt-6 md:mt-8 w-full text-left">
-                        <div className="flex items-center gap-2 mb-3">
-                          <History size={16} className="text-blue-500" />
-                          <h4 className={cn("text-xs font-black uppercase tracking-[0.2em]", currentTheme.text)}>পূর্ববর্তী রোগী</h4>
-                        </div>
-                        <div className="space-y-2">
-                          {patients
-                            .filter(p => p.status === 'completed' || p.status === 'checked-in')
-                            .sort((a, b) => {
-                              const aTime = a.updatedAt?.seconds || a.createdAt?.seconds || 0;
-                              const bTime = b.updatedAt?.seconds || b.createdAt?.seconds || 0;
-                              return bTime - aTime;
-                            })
-                            .slice(0, 3)
-                            .map((p, i) => (
-                              <motion.div 
-                                key={`hist-main-${p.id}`}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-none"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className="text-sm font-black text-blue-500">#{p.serialNumber}</span>
-                                  <span className={cn("text-sm font-bold truncate max-w-[120px] flex items-center gap-1", currentTheme.text)}>
-                                    {p.name}
-                                    <VerificationBadge badge={p.verifiedBadge} size={12} />
-                                  </span>
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-tighter opacity-40">সম্পন্ন</span>
-                              </motion.div>
-                            ))}
-                          {patients.filter(p => p.status === 'completed' || p.status === 'checked-in').length === 0 && (
-                            <p className="text-[10px] font-bold italic opacity-40 text-center py-2">কোনো ইতিহাস নেই</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
                     <div className="mt-6 md:mt-10 opacity-80">
                       <p className={cn("text-[12px] md:text-[14px] font-black tracking-[0.4em] uppercase italic", currentTheme.text)}>
                         Designed by <span style={{ color: settings.primaryColor || '#7dd3fc' }}>Kawsar</span>
                       </p>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
             </div>
 
             {/* Right: Patient List */}
@@ -960,56 +866,37 @@ export default function PublicDisplay() {
                         }}
                       >
                         {/* Notice Overlay */}
-                        <AnimatePresence>
-                          {(activeDoctor?.activeNotice || settings.activeNotice) && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              className="absolute inset-0 z-30 flex items-center justify-center p-6 text-center"
-                            >
-                              <div className={cn("absolute inset-0 opacity-95", noticeStyle.bg)} />
-                              <div className="relative z-10 flex flex-col items-center gap-6">
-                                <div className="bg-white/20 p-6 rounded-none border border-white/30">
-                                  <AlertCircle size={80} className="text-white" />
-                                </div>
-                                <div className="space-y-4">
-                                  <p className="text-sm font-black uppercase tracking-[0.4em] text-white/70">
-                                    {activeDoctor?.activeNotice ? `${activeDoctor.name} এর বিশেষ বার্তা` : 'হাসপাতাল জরুরী ঘোষণা'}
-                                  </p>
-                                  <h2 className="text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
-                                    {activeDoctor?.activeNotice || settings.activeNotice}
-                                  </h2>
-                                </div>
+                        {(activeDoctor?.activeNotice || settings.activeNotice) && (
+                          <div
+                            className="absolute inset-0 z-30 flex items-center justify-center p-6 text-center"
+                          >
+                            <div className={cn("absolute inset-0 opacity-95", noticeStyle.bg)} />
+                            <div className="relative z-10 flex flex-col items-center gap-6">
+                              <div className="bg-white/20 p-6 rounded-none border border-white/30">
+                                <AlertCircle size={80} className="text-white" />
                               </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                              <div className="space-y-4">
+                                <p className="text-sm font-black uppercase tracking-[0.4em] text-white/70">
+                                  {activeDoctor?.activeNotice ? `${activeDoctor.name} এর বিশেষ বার্তা` : 'হাসপাতাল জরুরী ঘোষণা'}
+                                </p>
+                                <h2 className="text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
+                                  {activeDoctor?.activeNotice || settings.activeNotice}
+                                </h2>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="p-4 md:p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-50/50 to-white/50" style={{ borderColor: `${settings.primaryColor || '#2563eb'}20` }}>
                           <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl shadow-inner" style={{ backgroundColor: `${settings.primaryColor || '#2563eb'}15`, color: settings.primaryColor || '#2563eb' }}>
-                              <Users size={24} />
+                            <div className="p-4 rounded-xl shadow-inner" style={{ backgroundColor: `${settings.primaryColor || '#2563eb'}15`, color: settings.primaryColor || '#2563eb' }}>
+                              <Users size={36} />
                             </div>
                             <div>
-                              <h3 className={cn("text-xl md:text-2xl font-black uppercase tracking-tight", currentTheme.text)}>
+                              <h3 className={cn("text-2xl md:text-4xl font-black uppercase tracking-tight", currentTheme.text)}>
                                 আজকের সিরিয়াল তালিকা
                               </h3>
-                              <p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-50", currentTheme.text)}>General Patient Queue</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex flex-col items-center px-6 py-2 bg-emerald-50 border-2 border-emerald-100 rounded-2xl shadow-sm">
-                              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">সম্পন্ন</span>
-                              <span className="text-3xl font-black text-emerald-700">{generalStats.completed}</span>
-                            </div>
-                            <div className="flex flex-col items-center px-6 py-2 bg-orange-50 border-2 border-orange-100 rounded-2xl shadow-sm">
-                              <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">অপেক্ষমান</span>
-                              <span className="text-3xl font-black text-orange-700">{generalStats.waiting}</span>
-                            </div>
-                            <div className="flex flex-col items-center px-6 py-2 bg-blue-50 border-2 border-blue-100 rounded-2xl shadow-sm">
-                              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">সর্বমোট</span>
-                              <span className="text-3xl font-black text-blue-700">{generalStats.total}</span>
+                              <p className={cn("text-[12px] font-black uppercase tracking-[0.2em] opacity-50", currentTheme.text)}>General Patient Queue</p>
                             </div>
                           </div>
                         </div>
@@ -1022,19 +909,17 @@ export default function PublicDisplay() {
                           </div>
                           
                           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                            <AnimatePresence initial={false}>
-                              {generalPatients
-                                .filter(p => p.status !== 'completed' && p.status !== 'checked-in')
-                                .slice(0, 8)
-                                .map((patient, index) => (
-                                <PatientCard 
-                                  key={`gen-${patient.id}`} 
-                                  patient={patient} 
-                                  index={index} 
-                                  settings={settings} 
-                                />
-                              ))}
-                            </AnimatePresence>
+                            {generalPatients
+                              .filter(p => p.status !== 'completed' && p.status !== 'checked-in')
+                              .slice(0, 8)
+                              .map((patient, index) => (
+                              <PatientCard 
+                                key={`gen-${patient.id}`} 
+                                patient={patient} 
+                                index={index} 
+                                settings={settings} 
+                              />
+                            ))}
                             
                             {generalPatients.length === 0 && (
                               <div className="h-48 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 bg-slate-50/30">
@@ -1057,56 +942,37 @@ export default function PublicDisplay() {
                         }}
                       >
                         {/* Notice Overlay */}
-                        <AnimatePresence>
-                          {(activeDoctor?.activeNotice || settings.activeNotice) && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              className="absolute inset-0 z-30 flex items-center justify-center p-6 text-center"
-                            >
-                              <div className={cn("absolute inset-0 opacity-95", noticeStyle.bg)} />
-                              <div className="relative z-10 flex flex-col items-center gap-6">
-                                <div className="bg-white/20 p-6 rounded-none border border-white/30">
-                                  <AlertCircle size={80} className="text-white" />
-                                </div>
-                                <div className="space-y-4">
-                                  <p className="text-sm font-black uppercase tracking-[0.4em] text-white/70">
-                                    {activeDoctor?.activeNotice ? `${activeDoctor.name} এর বিশেষ বার্তা` : 'হাসপাতাল জরুরী ঘোষণা'}
-                                  </p>
-                                  <h2 className="text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
-                                    {activeDoctor?.activeNotice || settings.activeNotice}
-                                  </h2>
-                                </div>
+                        {(activeDoctor?.activeNotice || settings.activeNotice) && (
+                          <div
+                            className="absolute inset-0 z-30 flex items-center justify-center p-6 text-center"
+                          >
+                            <div className={cn("absolute inset-0 opacity-95", noticeStyle.bg)} />
+                            <div className="relative z-10 flex flex-col items-center gap-6">
+                              <div className="bg-white/20 p-6 rounded-none border border-white/30">
+                                <AlertCircle size={80} className="text-white" />
                               </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                              <div className="space-y-4">
+                                <p className="text-sm font-black uppercase tracking-[0.4em] text-white/70">
+                                  {activeDoctor?.activeNotice ? `${activeDoctor.name} এর বিশেষ বার্তা` : 'হাসপাতাল জরুরী ঘোষণা'}
+                                </p>
+                                <h2 className="text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
+                                  {activeDoctor?.activeNotice || settings.activeNotice}
+                                </h2>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="p-4 md:p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-50/50 to-white/50" style={{ borderColor: `${settings.procedureColor || '#10b981'}20` }}>
                           <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl shadow-inner" style={{ backgroundColor: `${settings.procedureColor || '#10b981'}15`, color: settings.procedureColor || '#10b981' }}>
-                              <Activity size={24} />
+                            <div className="p-4 rounded-xl shadow-inner" style={{ backgroundColor: `${settings.procedureColor || '#10b981'}15`, color: settings.procedureColor || '#10b981' }}>
+                              <Activity size={36} />
                             </div>
                             <div>
-                              <h3 className={cn("text-xl md:text-2xl font-black uppercase tracking-tight", currentTheme.text)}>
+                              <h3 className={cn("text-2xl md:text-4xl font-black uppercase tracking-tight", currentTheme.text)}>
                                 {activeDoctor.procedures?.[0] || 'ওপিডি প্রসিডিউর'}
                               </h3>
-                              <p className={cn("text-[10px] font-black uppercase tracking-[0.2em] opacity-50", currentTheme.text)}>Procedure Queue</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex flex-col items-center px-6 py-2 bg-emerald-50 border-2 border-emerald-100 rounded-2xl shadow-sm">
-                              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">সম্পন্ন</span>
-                              <span className="text-3xl font-black text-emerald-700">{procedureStats.completed}</span>
-                            </div>
-                            <div className="flex flex-col items-center px-6 py-2 bg-orange-50 border-2 border-orange-100 rounded-2xl shadow-sm">
-                              <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">অপেক্ষমান</span>
-                              <span className="text-3xl font-black text-orange-700">{procedureStats.waiting}</span>
-                            </div>
-                            <div className="flex flex-col items-center px-6 py-2 bg-blue-50 border-2 border-blue-100 rounded-2xl shadow-sm">
-                              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">সর্বমোট</span>
-                              <span className="text-3xl font-black text-blue-700">{procedureStats.total}</span>
+                              <p className={cn("text-[12px] font-black uppercase tracking-[0.2em] opacity-50", currentTheme.text)}>Procedure Queue</p>
                             </div>
                           </div>
                         </div>
@@ -1119,20 +985,18 @@ export default function PublicDisplay() {
                           </div>
                           
                           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                            <AnimatePresence initial={false}>
-                              {procedurePatients
-                                .filter(p => p.status !== 'completed' && p.status !== 'checked-in')
-                                .slice(0, 8)
-                                .map((patient, index) => (
-                                <PatientCard 
-                                  key={`proc-${patient.id}`} 
-                                  patient={patient} 
-                                  index={index} 
-                                  settings={settings} 
-                                  showService 
-                                />
-                              ))}
-                            </AnimatePresence>
+                            {procedurePatients
+                              .filter(p => p.status !== 'completed' && p.status !== 'checked-in')
+                              .slice(0, 8)
+                              .map((patient, index) => (
+                              <PatientCard 
+                                key={`proc-${patient.id}`} 
+                                patient={patient} 
+                                index={index} 
+                                settings={settings} 
+                                showService 
+                              />
+                            ))}
                             
                             {procedurePatients.length === 0 && (
                               <div className="h-48 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 bg-slate-50/30">
@@ -1147,8 +1011,7 @@ export default function PublicDisplay() {
                 );
               })()}
             </div>
-          </motion.div>
-        </AnimatePresence>
+          </div>
         )}
       </main>
 
@@ -1202,15 +1065,11 @@ export default function PublicDisplay() {
           </div>
         </div>
       </footer>
-      <AnimatePresence>
-        {selectedDoctorForProfile && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-            >
+      {selectedDoctorForProfile && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div 
+            className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          >
               <div className="relative h-48 md:h-64 shrink-0">
                 <img 
                   src={selectedDoctorForProfile.coverUrl || `https://picsum.photos/seed/cover-${selectedDoctorForProfile.id}/1200/400`} 
@@ -1314,11 +1173,8 @@ export default function PublicDisplay() {
                       {doctorHistory
                         .slice(0, 10)
                         .map((p, idx) => (
-                          <motion.div 
+                          <div 
                             key={`hist-profile-${p.id}`}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
                             className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between hover:border-blue-200 transition-all shadow-sm group"
                           >
                             <div className="flex items-center gap-4">
@@ -1343,7 +1199,7 @@ export default function PublicDisplay() {
                                 {p.status === 'completed' ? 'সম্পন্ন' : 'অপেক্ষমান'}
                               </span>
                             </div>
-                          </motion.div>
+                          </div>
                         ))}
                       
                       {doctorHistory.length === 0 && (
@@ -1356,10 +1212,9 @@ export default function PublicDisplay() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

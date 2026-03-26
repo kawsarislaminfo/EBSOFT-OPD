@@ -23,10 +23,14 @@ export default function RegistrationDoctorSelector({
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const dayMap = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+  const today = dayMap[new Date().getDay()];
+
   const activeDoctors = doctors.filter(d => d.status !== 'inactive');
+  const scheduledDoctors = activeDoctors.filter(d => d.availableDays?.includes(today));
   const selectedDoctor = activeDoctors.find(d => d.id === selectedDoctorId);
 
-  const filteredDoctors = activeDoctors.filter(d => 
+  const filteredDoctors = scheduledDoctors.filter(d => 
     d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -106,9 +110,22 @@ export default function RegistrationDoctorSelector({
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             className="absolute left-0 right-0 mt-2 bg-white border-2 border-slate-200 shadow-2xl z-[100] overflow-hidden rounded-none"
           >
-            <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
-              {activeDoctors.length > 0 ? (
-                activeDoctors.map((doctor) => {
+            <div className="p-2 border-b border-slate-100 bg-slate-50">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input
+                  type="text"
+                  placeholder="ডাক্তার খুঁজুন..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 text-xs font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+              {filteredDoctors.length > 0 ? (
+                filteredDoctors.map((doctor) => {
                   const isActive = selectedDoctorId === doctor.id;
                   
                   return (

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, storage, handleFirestoreError, OperationType } from './lib/firebase';
+import { format } from 'date-fns';
+import { bn } from 'date-fns/locale';
 import { collection, onSnapshot, query, addDoc, serverTimestamp, getDocs, limit, doc, updateDoc, deleteDoc, setDoc, where, orderBy } from 'firebase/firestore';
 import { updateEmail } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -795,6 +797,27 @@ export default function AdminPanel() {
   const [selectedDoctorForNotice, setSelectedDoctorForNotice] = useState<string | 'global'>('global');
 
   useEffect(() => {
+    if (activeTab === 'registration' || activeTab === 'registration-procedure') {
+      const dayMap = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+      const today = dayMap[new Date().getDay()];
+      const scheduledDocs = doctors.filter(d => {
+        const isScheduled = d.status !== 'inactive' && d.availableDays?.includes(today);
+        if (activeTab === 'registration-procedure') {
+          return isScheduled && d.procedures && d.procedures.length > 0;
+        }
+        return isScheduled;
+      });
+      
+      // If a doctor is selected but not in the valid list for this tab, clear it
+      if (selectedDoctorId && !scheduledDocs.find(d => d.id === selectedDoctorId)) {
+        setSelectedDoctorId('');
+      }
+      
+      if (!selectedDoctorId && scheduledDocs.length > 0) {
+        setSelectedDoctorId(scheduledDocs[0].id);
+      }
+    }
+    
     if (activeTab === 'registration') {
       setManualSerial(nextSerialGeneral);
       setSelectedServices(['general']);
@@ -1659,54 +1682,96 @@ export default function AdminPanel() {
   const downloadExcel = () => {
     const workbook = XLSX.utils.book_new();
     
-    // 1. Total Summary Sheet
-    const summaryData = doctors.map(doc => {
-      const docPatients = filteredPatients.filter(p => p.doctorId === doc.id);
-      if (docPatients.length === 0) return null;
-      
-      return {
-        'ডাক্তারের নাম': doc.name,
-        'বিভাগ': doc.department,
-        'মোট রোগী': docPatients.length,
-        'নতুন রোগী': docPatients.filter(p => p.patientType === 'new').length,
-        'ফলোআপ রোগী': docPatients.filter(p => p.patientType === 'followup').length,
-        'সম্পন্ন': docPatients.filter(p => p.status === 'completed').length,
-        'অপেক্ষমান': docPatients.filter(p => p.status !== 'completed').length,
-      };
-    }).filter(Boolean);
+    // Create a title for the report
+    const reportTitle = startDate === endDate 
+      ? `রিপোর্ট তারিখ: ${format(new Date(startDate), 'dd MMM yyyy', { locale: bn })}` 
+      : `রিপোর্ট তারিখ: ${format(new Date(startDate), 'dd MMM yyyy', { locale: bn })} থেকে ${format(new Date(endDate), 'dd MMM yyyy', { locale: bn })}`;
 
-    if (summaryData.length === 0) {
+    // 1. Total Summary Sheet
+    const summaryRows: any[][] = [
+      ['সাজেদা জব্বার হাসপাতাল - ওপিডি রিপোর্ট'],
+      [reportTitle],
+      [''],
+      ['ডাক্তারের নাম', 'বিভাগ', 'মোট রোগী', 'নতুন রোগী', 'ফলোআপ রোগী']
+    ];
+
+    let hasData = false;
+
+    doctors.forEach(doc => {
+      const docPatients = filteredPatients.filter(p => p.doctorId === doc.id);
+      if (docPatients.length > 0) {
+        hasData = true;
+        summaryRows.push([
+          doc.name,
+          doc.department,
+          docPatients.length,
+          docPatients.filter(p => p.patientType === 'new').length,
+          docPatients.filter(p => p.patientType === 'followup').length
+        ]);
+      }
+    });
+
+    if (!hasData) {
       showToast('এই তারিখের মধ্যে কোনো রোগীর তথ্য নেই।');
       return;
     }
 
-    const summarySheet = XLSX.utils.json_to_sheet(summaryData as any[]);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, "সারসংক্ষেপ (Summary)");
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+    
+    summarySheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } }
+    ];
+    
+    summarySheet['!cols'] = [
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 }
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "সারসংক্ষেপ");
 
     // 2. All Patients Master Sheet
-    const allPatientsData = filteredPatients.map(p => {
+    const allPatientsRows: any[][] = [
+      ['সাজেদা জব্বার হাসপাতাল - সকল রোগীর তালিকা'],
+      [reportTitle],
+      [''],
+      ['সিরিয়াল', 'রোগীর নাম', 'বয়স', 'ধরণ', 'সার্ভিস', 'ডাক্তার', 'বিভাগ', 'তারিখ']
+    ];
+
+    filteredPatients.forEach(p => {
       const doc = doctors.find(d => d.id === p.doctorId);
-      const statusMap: Record<string, string> = {
-        'waiting': 'অপেক্ষমান',
-        'running': 'রানিং',
-        'next': 'এরপর',
-        'absent': 'অনুপস্থিত',
-        'completed': 'সম্পন্ন'
-      };
-      return {
-        'সিরিয়াল': p.serialNumber,
-        'রোগীর নাম': p.name,
-        'বয়স': p.age || '-',
-        'ধরণ': p.patientType === 'new' ? 'নতুন' : 'ফলোআপ',
-        'সার্ভিস': p.service === 'general' ? 'জেনারেল' : p.service || 'জেনারেল',
-        'ডাক্তার': doc?.name || 'অজানা',
-        'বিভাগ': doc?.department || '-',
-        'অবস্থা': statusMap[p.status] || p.status,
-        'তারিখ': p.date
-      };
+      allPatientsRows.push([
+        p.serialNumber,
+        p.name,
+        p.age || '-',
+        p.patientType === 'new' ? 'নতুন' : 'ফলোআপ',
+        p.service === 'general' ? 'জেনারেল' : p.service || 'জেনারেল',
+        doc?.name || 'অজানা',
+        doc?.department || '-',
+        format(new Date(p.date), 'dd MMM yyyy', { locale: bn })
+      ]);
     });
-    const allPatientsSheet = XLSX.utils.json_to_sheet(allPatientsData);
-    XLSX.utils.book_append_sheet(workbook, allPatientsSheet, "সকল রোগীর তালিকা");
+
+    const allPatientsSheet = XLSX.utils.aoa_to_sheet(allPatientsRows);
+    allPatientsSheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
+    ];
+    allPatientsSheet['!cols'] = [
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 15 }
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, allPatientsSheet, "সকল রোগী");
 
     // 3. Individual Doctor Sheets
     doctors.forEach(doc => {
@@ -1714,41 +1779,50 @@ export default function AdminPanel() {
       if (docPatients.length === 0) return;
 
       const docRows: any[][] = [
+        ['সাজেদা জব্বার হাসপাতাল - ডাক্তার ভিত্তিক রিপোর্ট'],
+        [reportTitle],
+        [''],
         ['ডাক্তারের তথ্য', '', '', ''],
         ['নাম:', doc.name, 'বিভাগ:', doc.department],
-        ['ডিগ্রী:', doc.degree, 'রুম:', doc.roomNumber],
+        ['ডিগ্রী:', doc.degree, 'রুম:', doc.roomNumber || '-'],
+        ['শিডিউল:', doc.schedule || '-', '', ''],
         ['', '', '', ''],
         ['রোগীর সামারি', '', '', ''],
-        ['মোট রোগী:', docPatients.length, 'নতুন:', docPatients.filter(p => p.patientType === 'new').length],
-        ['ফলোআপ:', docPatients.filter(p => p.patientType === 'followup').length, 'সম্পন্ন:', docPatients.filter(p => p.status === 'completed').length],
+        ['মোট রোগী:', docPatients.length, 'নতুন রোগী:', docPatients.filter(p => p.patientType === 'new').length],
+        ['ফলোআপ:', docPatients.filter(p => p.patientType === 'followup').length, '', ''],
         ['', '', '', ''],
-        ['সিরিয়াল', 'রোগীর নাম', 'বয়স', 'ধরণ', 'সার্ভিস', 'অবস্থা']
+        ['সিরিয়াল', 'রোগীর নাম', 'বয়স', 'ধরণ', 'সার্ভিস']
       ];
 
       docPatients.forEach(p => {
-        const statusMap: Record<string, string> = {
-          'waiting': 'অপেক্ষমান',
-          'running': 'রানিং',
-          'next': 'এরপর',
-          'absent': 'অনুপস্থিত',
-          'completed': 'সম্পন্ন'
-        };
         docRows.push([
           p.serialNumber,
           p.name,
           p.age || '-',
           p.patientType === 'new' ? 'নতুন' : 'ফলোআপ',
-          p.service === 'general' ? 'জেনারেল' : p.service || 'জেনারেল',
-          statusMap[p.status] || p.status
+          p.service === 'general' ? 'জেনারেল' : p.service || 'জেনারেল'
         ]);
       });
 
       const sheet = XLSX.utils.aoa_to_sheet(docRows);
       
-      // Clean sheet name: max 31 chars, no special chars \ / ? * [ ]
-      let sheetName = doc.name.replace(/[\\/?*[\]]/g, '').substring(0, 31);
+      sheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
+        { s: { r: 6, c: 1 }, e: { r: 6, c: 3 } },
+        { s: { r: 8, c: 0 }, e: { r: 8, c: 3 } }
+      ];
+
+      sheet['!cols'] = [
+        { wch: 15 },
+        { wch: 30 },
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 20 }
+      ];
       
-      // Ensure unique sheet name
+      let sheetName = doc.name.replace(/[\\/?*[\]]/g, '').substring(0, 31);
       let finalSheetName = sheetName;
       let counter = 1;
       while (workbook.SheetNames.includes(finalSheetName)) {
@@ -1758,7 +1832,7 @@ export default function AdminPanel() {
       XLSX.utils.book_append_sheet(workbook, sheet, finalSheetName);
     });
 
-    XLSX.writeFile(workbook, `hospital_report_${startDate}_to_${endDate}.xlsx`);
+    XLSX.writeFile(workbook, `OPD_Report_${startDate}_to_${endDate}.xlsx`);
   };
 
   const handleExportData = async () => {
@@ -2998,7 +3072,7 @@ export default function AdminPanel() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 md:gap-4">
-                  <div className="lg:col-span-4 xl:col-span-3">
+                  <div className="lg:col-span-5 xl:col-span-4">
                     <div className="bg-white border-2 border-slate-200 shadow-xl p-6 sm:p-5 relative overflow-hidden">
                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600" />
                       
@@ -3006,7 +3080,10 @@ export default function AdminPanel() {
 
                         {/* Modern Doctor Selection */}
                         <RegistrationDoctorSelector 
-                          doctors={doctors}
+                          doctors={activeTab === 'registration-procedure' 
+                            ? doctors.filter(d => d.procedures && d.procedures.length > 0)
+                            : doctors
+                          }
                           selectedDoctorId={selectedDoctorId}
                           setSelectedDoctorId={setSelectedDoctorId}
                           required
@@ -3203,7 +3280,7 @@ export default function AdminPanel() {
             </div>
 
               {/* List Column */}
-              <div className="lg:col-span-8 xl:col-span-9 space-y-2 sm:space-y-4 mt-0 lg:mt-0">
+              <div className="lg:col-span-7 xl:col-span-8 space-y-2 sm:space-y-4 mt-0 lg:mt-0">
                 <div className="bg-white rounded-none shadow-xl border-2 border-slate-200 overflow-hidden mt-0 sm:mt-0">
                   <div className="flex flex-col sm:flex-row border-b-2 border-slate-200 items-stretch">
                     <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 font-black text-base sm:text-base md:text-lg flex-1 flex items-center gap-2 sm:gap-2.5">
@@ -3484,10 +3561,10 @@ export default function AdminPanel() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/80 border-b-2 border-slate-200">
-                      <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">টোকেন</th>
-                      <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">রোগীর বিস্তারিত তথ্য</th>
-                      <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">বর্তমান অবস্থা</th>
-                      <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] text-right">অ্যাকশন প্যানেল</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">টোকেন</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">রোগীর বিস্তারিত তথ্য</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">বর্তমান অবস্থা</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] text-right">অ্যাকশন প্যানেল</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -3497,14 +3574,14 @@ export default function AdminPanel() {
                           "hover:bg-blue-50/30 transition-all group", 
                           p.status === 'running' && "bg-emerald-50/50"
                         )}>
-                        <td className="px-8 py-8">
-                          <div className="w-14 h-14 bg-slate-100 rounded-none flex items-center justify-center font-black text-2xl text-slate-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner border-2 border-transparent group-hover:border-blue-400">
+                        <td className="px-4 py-3">
+                          <div className="w-10 h-10 bg-slate-100 rounded-none flex items-center justify-center font-black text-lg text-slate-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner border-2 border-transparent group-hover:border-blue-400">
                             {p.serialNumber}
                           </div>
                         </td>
-                        <td className="px-8 py-8">
+                        <td className="px-4 py-3">
                           <div className="flex items-center gap-4 mb-1">
-                            <p className="font-black text-slate-900 text-2xl tracking-tight flex items-center gap-2">
+                            <p className="font-black text-slate-900 text-lg tracking-tight flex items-center gap-2">
                               {p.name}
                             </p>
                             {p.patientType && (
@@ -3533,13 +3610,13 @@ export default function AdminPanel() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-8 py-8">
+                        <td className="px-4 py-3">
                           <div className="relative w-fit">
                             <select 
                               value={p.status || 'waiting'}
                               onChange={(e) => updatePatientStatus(p.id, e.target.value)}
                               className={cn(
-                                "text-[11px] font-black px-6 py-3 rounded-none outline-none border-2 transition-all cursor-pointer uppercase tracking-[0.2em] appearance-none pr-12",
+                                "text-[10px] font-black px-3 py-1.5 rounded-none outline-none border-2 transition-all cursor-pointer uppercase tracking-[0.2em] appearance-none pr-10",
                                 p.status === 'running' ? "bg-red-600 text-white border-red-700 shadow-xl shadow-red-600/20" :
                                 p.status === 'next' ? "bg-blue-600 text-white border-blue-700 shadow-xl shadow-blue-600/20" :
                                 p.status === 'absent' ? "bg-orange-600 text-white border-orange-700 shadow-xl shadow-orange-600/20" :
@@ -3557,51 +3634,51 @@ export default function AdminPanel() {
                             <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" />
                           </div>
                         </td>
-                        <td className="px-8 py-8 text-right">
-                          <div className="flex items-center justify-end gap-3">
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => updatePatientStatus(p.id, 'calling')}
-                              className="w-12 h-12 flex items-center justify-center text-orange-600 bg-orange-50 hover:bg-orange-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-orange-100 hover:border-orange-600 shadow-sm"
+                              className="w-9 h-9 flex items-center justify-center text-orange-600 bg-orange-50 hover:bg-orange-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-orange-100 hover:border-orange-600 shadow-sm"
                               title="কল করুন"
                             >
-                              <Phone size={22} />
+                              <Phone size={18} />
                             </button>
                             <button
                               onClick={() => printSerial(p)}
-                              className="w-12 h-12 flex items-center justify-center text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-indigo-100 hover:border-indigo-600 shadow-sm"
+                              className="w-9 h-9 flex items-center justify-center text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-indigo-100 hover:border-indigo-600 shadow-sm"
                               title="প্রিন্ট করুন"
                             >
-                              <Download size={22} />
+                              <Download size={18} />
                             </button>
                             <button
                               onClick={() => openEditPatientForm(p)}
-                              className="w-12 h-12 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-blue-100 hover:border-blue-600 shadow-sm"
+                              className="w-9 h-9 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-blue-100 hover:border-blue-600 shadow-sm"
                               title="এডিট করুন"
                             >
-                              <Edit size={22} />
+                              <Edit size={18} />
                             </button>
                             <button
                               onClick={() => updatePatientStatus(p.id, 'completed')}
-                              className="w-12 h-12 flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-emerald-100 hover:border-emerald-600 shadow-sm"
+                              className="w-9 h-9 flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-none transition-all active:scale-90 border-2 border-emerald-100 hover:border-emerald-600 shadow-sm"
                               title="সম্পন্ন করুন"
                             >
-                              <CheckCircle2 size={24} />
+                              <CheckCircle2 size={20} />
                             </button>
                             <button
                               onClick={() => deletePatient(p.id)}
-                              className="w-12 h-12 flex items-center justify-center text-red-400 bg-red-50 hover:bg-red-500 hover:text-white rounded-none transition-all active:scale-90 border-2 border-red-100 hover:border-red-500 shadow-sm"
+                              className="w-9 h-9 flex items-center justify-center text-red-400 bg-red-50 hover:bg-red-500 hover:text-white rounded-none transition-all active:scale-90 border-2 border-red-100 hover:border-red-500 shadow-sm"
                               title="মুছে ফেলুন"
                             >
-                              <Trash2 size={24} />
+                              <Trash2 size={20} />
                             </button>
                           </div>
                         </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={4} className="px-8 py-24 text-center">
-                          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Users size={32} className="text-slate-200" />
+                        <td colSpan={4} className="px-4 py-12 text-center">
+                          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Users size={24} className="text-slate-200" />
                           </div>
                           <p className="text-slate-400 font-black italic">এই ডাক্তারের জন্য কোনো সিরিয়াল নেই</p>
                         </td>
@@ -8657,7 +8734,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 md:gap-6">
               
                 {paginatedDoctors.map((d, index) => (
                   <div
@@ -8803,7 +8880,7 @@ export default function AdminPanel() {
               <p className="text-xs md:text-base text-slate-500 font-medium">আজকের দিনে উপলব্ধ ডাক্তারদের তালিকা</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
               {(() => {
                 const dayMap = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
                 const todayDay = dayMap[new Date().getDay()];

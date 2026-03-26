@@ -52,7 +52,7 @@ export default function DoctorSelector({
   }
 
   return (
-    <div className={cn("relative w-full max-w-md mx-auto", className)} ref={dropdownRef}>
+    <div className={cn("relative w-full max-w-md", className)} ref={dropdownRef}>
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2 block ml-1">
         ডাক্তার নির্বাচন করুন
       </label>
