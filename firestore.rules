@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email in ['ebabostha@gmail.com', 'kawsarislam.info@gmail.com', 'akdesignsbd@gmail.com', 'kawsardesignbd@gmail.com'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super-admin', 'admin'])
+      );
+    }
+
+    function isStaff() {
+      return isAuthenticated() && (
+        isAdmin() || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff')
+      );
+    }
+
+    function hasPermission(permissionName) {
+      return isAdmin() || (
+        isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions.get(permissionName, false) == true
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'name', 'email', 'username', 'role', 'isActive', 'permissions']) &&
+             (data.uid == request.auth.uid || isAdmin()) &&
+             data.name is string && data.name.size() > 0 &&
+             isValidEmail(data.email) &&
+             data.username is string && data.username.size() > 0 &&
+             data.role in ['super-admin', 'admin', 'staff', 'patient'] &&
+             data.isActive is bool &&
+             data.permissions is map;
+    }
+
+    function isValidDoctor(data) {
+      return hasRequiredFields(['name', 'department', 'designation', 'degree', 'schedule', 'roomNumber']) &&
+             data.name is string && data.name.size() < 100 &&
+             data.department is string && data.designation is string &&
+             data.degree is string && data.schedule is string &&
+             data.roomNumber is string;
+    }
+
+    function isValidPatient(data) {
+      return hasRequiredFields(['serialNumber', 'name', 'age', 'patientType', 'doctorId', 'status', 'date', 'service']) &&
+             data.serialNumber is int &&
+             data.name is string && data.name.size() < 100 &&
+             data.age is string && data.patientType in ['new', 'followup'] &&
+             data.doctorId is string &&
+             data.status in ['waiting', 'running', 'next', 'absent', 'completed', 'calling', 'checked-in'] &&
+             data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+             data['service'] is string &&
+             (data.get('id', null) == null || (data.id is string && data.id.size() > 0));
+    }
+
+    function isValidActivityLog(data) {
+      return hasRequiredFields(['uid', 'action', 'details', 'timestamp']) &&
+             data.uid is string && data.action is string &&
+             data.details is string && data.timestamp is timestamp;
+    }
+
+    function isValidDailyOpdStat(data) {
+      return hasRequiredFields(['date']) &&
+             data.date is string;
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isStaff();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (
+        (isOwner(userId) && request.resource.data.role == 'patient') || hasPermission('canManageUsers') || hasPermission('canManageBackup')
+      );
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && 
+         request.resource.data.role == resource.data.role && 
+         request.resource.data.isActive == resource.data.isActive &&
+         isValidUser(request.resource.data)) || 
+        hasPermission('canManageUsers') || hasPermission('canManageBackup')
+      );
+      allow delete: if hasPermission('canManageUsers') || hasPermission('canManageBackup');
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow create: if (hasPermission('canManageDoctors') || hasPermission('canManageBackup')) && isValidDoctor(request.resource.data);
+      allow update: if (hasPermission('canManageDoctors') || hasPermission('canManageBackup')) && isValidDoctor(request.resource.data);
+      allow delete: if hasPermission('canManageDoctors') || hasPermission('canManageBackup');
+    }
+
+    match /patients/{patientId} {
+      allow read: if isStaff() || isAuthenticated();
+      allow create: if (hasPermission('canCreateSerial') || hasPermission('canManageBackup')) && isValidPatient(request.resource.data);
+      allow update: if (hasPermission('canEditSerial') || hasPermission('canManagePatients') || hasPermission('canManageBackup')) && isValidPatient(request.resource.data);
+      allow delete: if hasPermission('canDeleteSerial') || hasPermission('canManagePatients') || hasPermission('canManageBackup');
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if hasPermission('canManageSettings') || hasPermission('canManageBackup');
+    }
+
+    match /activityLogs/{logId} {
+      allow read: if hasPermission('canViewActivityLogs') || hasPermission('canManageBackup');
+      allow create: if isAuthenticated() && isValidActivityLog(request.resource.data);
+    }
+
+    match /dailyOpdStats/{statDate} {
+      allow read: if hasPermission('canViewDashboard') || isStaff() || hasPermission('canManageBackup');
+      allow write: if (hasPermission('canEditOpdSummary') || hasPermission('canManageBackup')) && isValidDailyOpdStat(request.resource.data);
+    }
+    
+    match /_connection_test_/{ping} {
+      allow read: if true;
+    }
+  }
+}

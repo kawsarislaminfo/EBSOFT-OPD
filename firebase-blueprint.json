@@ -1,0 +1,157 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information for staff, admins, and patients.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "mobile": { "type": "string" },
+        "username": { "type": "string" },
+        "hospitalNumber": { "type": "string" },
+        "role": { "type": "string", "enum": ["super-admin", "admin", "staff", "patient"] },
+        "permissions": { "type": "object" },
+        "verifiedBadge": { "type": "string", "enum": ["none", "blue", "black", "green", "red"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isActive": { "type": "boolean" },
+        "emailVerified": { "type": "boolean" },
+        "address": { "type": "string" },
+        "portalNotice": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "noticeUpdatedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "username", "role", "isActive"]
+    },
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Doctor information and schedule.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "department": { "type": "string" },
+        "designation": { "type": "string" },
+        "degree": { "type": "string" },
+        "schedule": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "availableDays": { "type": "array", "items": { "type": "string" } },
+        "activeNotice": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "procedures": { "type": "array", "items": { "type": "string" } },
+        "scrollingNotice": { "type": "string" },
+        "footerNotice": { "type": "string" },
+        "footerScrollDuration": { "type": "number" },
+        "footerBgColor": { "type": "string" },
+        "footerTextColor": { "type": "string" },
+        "footerTheme": { "type": "string", "enum": ["light", "dark"] },
+        "verifiedBadge": { "type": "string", "enum": ["none", "blue", "black", "green", "red"] }
+      },
+      "required": ["id", "name", "department", "designation", "degree", "schedule", "roomNumber"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient registration and queue information.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "serialNumber": { "type": "number" },
+        "hospitalNumber": { "type": "string" },
+        "name": { "type": "string" },
+        "age": { "type": "string" },
+        "patientType": { "type": "string", "enum": ["new", "followup"] },
+        "service": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting", "running", "next", "absent", "completed", "calling", "checked-in"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "date": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "verifiedBadge": { "type": "string", "enum": ["none", "blue", "black", "green", "red"] }
+      },
+      "required": ["id", "serialNumber", "name", "age", "patientType", "doctorId", "status", "date"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Global application settings.",
+      "type": "object",
+      "properties": {
+        "hospitalName": { "type": "string" },
+        "slogan": { "type": "string" },
+        "scrollSpeed": { "type": "string", "enum": ["slow", "normal", "fast"] },
+        "activeNotice": { "type": "string" },
+        "hospitalLogo": { "type": "string" },
+        "primaryColor": { "type": "string" },
+        "fontColor": { "type": "string" },
+        "departments": { "type": "array", "items": { "type": "string" } },
+        "procedures": { "type": "array", "items": { "type": "string" } },
+        "enablePatientPortal": { "type": "boolean" },
+        "websiteTitle": { "type": "string" },
+        "favicon": { "type": "string" }
+      },
+      "required": ["hospitalName"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "System activity logs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["patient", "doctor", "settings", "user", "auth", "system"] }
+      },
+      "required": ["id", "userId", "userName", "action", "timestamp", "type"]
+    },
+    "DailyOpdStats": {
+      "title": "DailyOpdStats",
+      "description": "Daily OPD statistics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "patientSummary": { "type": "object" },
+        "ultrasonogram": { "type": "object" },
+        "gynecology": { "type": "object" },
+        "radiology": { "type": "object" },
+        "emergency": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["id", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profiles."
+    },
+    "/doctors/{doctorId}": {
+      "schema": "Doctor",
+      "description": "Doctor records."
+    },
+    "/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Patient records."
+    },
+    "/settings/general": {
+      "schema": "AppSettings",
+      "description": "Global settings."
+    },
+    "/activityLogs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Activity logs."
+    },
+    "/dailyOpdStats/{date}": {
+      "schema": "DailyOpdStats",
+      "description": "Daily statistics."
+    }
+  }
+}

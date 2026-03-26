@@ -1,0 +1,7 @@
+{
+  "name": "EBSOFT_OPD",
+  "description": "A real-time hospital patient queue and doctor serial management system with admin panel and public display.",
+  "requestFramePermissions": [
+    "notifications"
+  ]
+}
