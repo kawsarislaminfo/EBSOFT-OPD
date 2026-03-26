@@ -50,13 +50,13 @@ const PatientCard = React.forwardRef<HTMLDivElement, PatientCardProps>(({ patien
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ delay: index * 0.05 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        "relative group flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all duration-300",
-        isRunning ? "shadow-lg scale-[1.02] z-10" : "shadow-sm hover:shadow-md"
+        "relative group flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all duration-200 will-change-transform transform-gpu",
+        isRunning ? "shadow-lg scale-[1.01] z-10" : "shadow-sm"
       )}
       style={{
         backgroundColor: bgColor,

@@ -81,19 +81,19 @@ const TRANSITIONS = {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
     exit: { opacity: 0 },
-    transition: { duration: 0.5 }
+    transition: { duration: 0.3 }
   },
   slide: {
-    initial: { opacity: 0, x: 100 },
+    initial: { opacity: 0, x: 50 },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -100 },
-    transition: { type: "spring", damping: 20, stiffness: 100 }
+    exit: { opacity: 0, x: -50 },
+    transition: { duration: 0.4, ease: "easeOut" }
   },
   zoom: {
-    initial: { opacity: 0, scale: 0.8 },
+    initial: { opacity: 0, scale: 0.95 },
     animate: { opacity: 1, scale: 1 },
-    exit: { opacity: 0, scale: 1.2 },
-    transition: { duration: 0.4 }
+    exit: { opacity: 0, scale: 1.05 },
+    transition: { duration: 0.3 }
   },
   none: {
     initial: { opacity: 1 },
@@ -149,12 +149,17 @@ export default function PublicDisplay() {
     }
     const q = query(
       collection(db, 'patients'),
-      where('doctorId', '==', selectedDoctorForProfile.id)
+      where('doctorId', '==', selectedDoctorForProfile.id),
+      where('status', '==', 'completed')
     );
     const unsub = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Patient));
-      docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      setDoctorHistory(docs);
+      docs.sort((a, b) => {
+        const aTime = a.updatedAt?.seconds || a.createdAt?.seconds || 0;
+        const bTime = b.updatedAt?.seconds || b.createdAt?.seconds || 0;
+        return bTime - aTime;
+      });
+      setDoctorHistory(docs.slice(0, 10));
     });
     return () => unsub();
   }, [selectedDoctorForProfile]);
@@ -196,19 +201,20 @@ export default function PublicDisplay() {
     if (!settings.displaySwitchOnCall) return;
 
     const today = new Date().toISOString().split('T')[0];
-    const q = query(collection(db, 'patients'), where('date', '==', today));
+    const q = query(
+      collection(db, 'patients'), 
+      where('date', '==', today),
+      where('status', '==', 'calling')
+    );
     const unsubAllPatients = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'modified') {
-          const patientData = change.doc.data() as Patient;
-          if (patientData.status === 'calling') {
-            const callingDoctor = doctors.find(d => d.id === patientData.doctorId);
-            if (callingDoctor && activeDoctor?.id !== callingDoctor.id) {
-              setActiveDoctor(callingDoctor);
-            }
-          }
+      if (!snapshot.empty) {
+        // Find the first calling patient that isn't for the current active doctor
+        const callingPatient = snapshot.docs[0].data() as Patient;
+        const callingDoctor = doctors.find(d => d.id === callingPatient.doctorId);
+        if (callingDoctor && activeDoctor?.id !== callingDoctor.id) {
+          setActiveDoctor(callingDoctor);
         }
-      });
+      }
     });
 
     return () => unsubAllPatients();
@@ -286,7 +292,12 @@ export default function PublicDisplay() {
       where('status', 'in', ['waiting', 'running', 'next', 'absent', 'completed', 'calling'])
     );
     const unsubPatients = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Patient));
+      // Use a more efficient way to process docs
+      const docs: Patient[] = [];
+      snapshot.forEach(d => {
+        docs.push({ id: d.id, ...d.data() } as Patient);
+      });
+      
       // Sort by status priority then serial number
       docs.sort((a, b) => {
         const priority: Record<string, number> = { 'running': 0, 'calling': 1, 'next': 2, 'absent': 3, 'waiting': 4, 'completed': 5 };
@@ -347,12 +358,23 @@ export default function PublicDisplay() {
   // No longer blocking on settings
 
   const activeDoctorStats = React.useMemo(() => {
-    if (!activeDoctor) return { completed: 0, waiting: 0, total: 0 };
-    const doctorPatients = patients.filter(p => p.doctorId === activeDoctor.id);
+    if (!activeDoctor || patients.length === 0) return { completed: 0, waiting: 0, total: 0 };
+    
+    let completed = 0;
+    let waiting = 0;
+    
+    for (const p of patients) {
+      if (p.status === 'completed') {
+        completed++;
+      } else if (p.status !== 'checked-in') {
+        waiting++;
+      }
+    }
+    
     return {
-      completed: doctorPatients.filter(p => p.status === 'completed').length,
-      waiting: doctorPatients.filter(p => p.status === 'waiting' || p.status === 'running' || p.status === 'next' || p.status === 'calling' || p.status === 'checked-in').length,
-      total: doctorPatients.length
+      completed,
+      waiting,
+      total: patients.length
     };
   }, [patients, activeDoctor]);
 
@@ -360,16 +382,26 @@ export default function PublicDisplay() {
   const procedurePatients = React.useMemo(() => patients.filter(p => p.service !== 'general'), [patients]);
 
   const generalStats = React.useMemo(() => {
-    const total = generalPatients.length;
-    const completed = generalPatients.filter(p => p.status === 'completed').length;
-    const waiting = generalPatients.filter(p => p.status !== 'completed').length;
+    let total = 0;
+    let completed = 0;
+    let waiting = 0;
+    for (const p of generalPatients) {
+      total++;
+      if (p.status === 'completed') completed++;
+      else waiting++;
+    }
     return { total, completed, waiting };
   }, [generalPatients]);
 
   const procedureStats = React.useMemo(() => {
-    const total = procedurePatients.length;
-    const completed = procedurePatients.filter(p => p.status === 'completed').length;
-    const waiting = procedurePatients.filter(p => p.status !== 'completed').length;
+    let total = 0;
+    let completed = 0;
+    let waiting = 0;
+    for (const p of procedurePatients) {
+      total++;
+      if (p.status === 'completed') completed++;
+      else waiting++;
+    }
     return { total, completed, waiting };
   }, [procedurePatients]);
 
@@ -655,7 +687,7 @@ export default function PublicDisplay() {
             {/* Left: Doctor Profile */}
             <div 
               className={cn(
-                "w-full lg:w-1/3 p-6 md:p-8 border-b lg:border-b-0 lg:border-r flex flex-col items-center justify-center relative shrink-0 transition-all duration-500",
+                "w-full lg:w-1/3 p-6 md:p-8 border-b lg:border-b-0 lg:border-r flex flex-col items-center justify-center relative shrink-0 transition-all duration-500 will-change-transform transform-gpu",
                 currentTheme.card
               )}
               style={{ 
@@ -864,7 +896,11 @@ export default function PublicDisplay() {
                         <div className="space-y-2">
                           {patients
                             .filter(p => p.status === 'completed' || p.status === 'checked-in')
-                            .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+                            .sort((a, b) => {
+                              const aTime = a.updatedAt?.seconds || a.createdAt?.seconds || 0;
+                              const bTime = b.updatedAt?.seconds || b.createdAt?.seconds || 0;
+                              return bTime - aTime;
+                            })
                             .slice(0, 3)
                             .map((p, i) => (
                               <motion.div 
@@ -916,7 +952,7 @@ export default function PublicDisplay() {
                     {/* General Patients Column */}
                     {showGeneral && (
                       <div 
-                        className={cn("flex flex-col h-full border rounded-none relative shadow-sm overflow-hidden transition-all duration-500", currentTheme.card)}
+                        className={cn("flex flex-col h-full border rounded-none relative shadow-sm overflow-hidden transition-all duration-500 will-change-transform transform-gpu", currentTheme.card)}
                         style={{ 
                           backgroundColor: settings?.displayCardBgColor && settings.displayTheme !== 'glass' && settings.displayTheme !== 'dark'
                             ? settings.displayCardBgColor 
@@ -986,7 +1022,7 @@ export default function PublicDisplay() {
                           </div>
                           
                           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                            <AnimatePresence mode="popLayout">
+                            <AnimatePresence initial={false}>
                               {generalPatients
                                 .filter(p => p.status !== 'completed' && p.status !== 'checked-in')
                                 .slice(0, 8)
@@ -1013,7 +1049,7 @@ export default function PublicDisplay() {
                     {/* Procedure Patients Column */}
                     {showProcedures && (
                       <div 
-                        className={cn("flex flex-col h-full border rounded-none relative shadow-sm overflow-hidden transition-all duration-500", currentTheme.card)}
+                        className={cn("flex flex-col h-full border rounded-none relative shadow-sm overflow-hidden transition-all duration-500 will-change-transform transform-gpu", currentTheme.card)}
                         style={{ 
                           backgroundColor: settings?.displayCardBgColor && settings.displayTheme !== 'glass' && settings.displayTheme !== 'dark'
                             ? settings.displayCardBgColor 
@@ -1083,7 +1119,7 @@ export default function PublicDisplay() {
                           </div>
                           
                           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                            <AnimatePresence mode="popLayout">
+                            <AnimatePresence initial={false}>
                               {procedurePatients
                                 .filter(p => p.status !== 'completed' && p.status !== 'checked-in')
                                 .slice(0, 8)

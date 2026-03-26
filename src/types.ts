@@ -103,6 +103,7 @@ export interface Patient {
   doctorId: string;
   status: 'waiting' | 'running' | 'next' | 'absent' | 'completed' | 'calling' | 'checked-in';
   createdAt: any;
+  updatedAt?: any;
   date: string; // YYYY-MM-DD
   invoiceNumber?: string;
   verifiedBadge?: 'none' | 'blue' | 'black' | 'green' | 'red';
