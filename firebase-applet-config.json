@@ -1,10 +1,10 @@
 {
-  "projectId": "remixed-TODO",
-  "appId": "remixed-TODO",
-  "apiKey": "remixed-TODO",
-  "authDomain": "remixed-TODO",
-  "firestoreDatabaseId": "remixed-TODO",
-  "storageBucket": "remixed-TODO",
-  "messagingSenderId": "remixed-TODO",
-  "measurementId": "remixed-TODO"
+  "projectId": "opd-management-d92cd",
+  "appId": "1:986970625348:web:1553c84414be024e5a7311",
+  "apiKey": "AIzaSyDePbBTbbZgWPI9tR_93yJwz_wZcriIeSc",
+  "authDomain": "opd-management-d92cd.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "opd-management-d92cd.firebasestorage.app",
+  "messagingSenderId": "986970625348",
+  "measurementId": "G-BCG3CF2J8B"
 }
